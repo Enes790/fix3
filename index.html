@@ -29,8 +29,6 @@ canvas{display:block;position:absolute;top:0;left:0}
 #gameOverScreen button{margin-top:22px;padding:14px 40px;font-size:18px;font-weight:bold;background:#e74c3c;color:#fff;border:none;border-radius:10px;cursor:pointer}
 #warningOverlay{position:absolute;inset:0;background:rgba(231,76,60,0.4);display:none;z-index:8;pointer-events:none;animation:warningAnim 0.5s infinite}
 @keyframes warningAnim{50%{opacity:0.6}}
-
-/* İNGİLİZCE SORU EKRANI */
 #questionScreen{position:absolute;inset:0;background:rgba(0,0,0,0.94);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:25;padding:20px}
 #questionTense{color:#3498db;font-size:13px;font-weight:bold;letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
 #questionText{color:#fff;font-size:19px;text-align:center;max-width:90%;margin-bottom:22px;line-height:1.4}
@@ -63,7 +61,6 @@ canvas{display:block;position:absolute;top:0;left:0}
 <button id="restartButton">TEKRAR OYNA</button>
 </div>
 
-<!-- İNGİLİZCE SORU EKRANI -->
 <div id="questionScreen">
 <div id="questionTense">PRESENT SIMPLE</div>
 <div id="questionText">Loading...</div>
@@ -126,14 +123,13 @@ let gameState = {
     botWaveIndex:1, toplamDalga:0,
     transitionTimer:0, transitionTarget:'',
     waveClearDelay: 0, waveClearPending: false,
-    // İstatistik
     dogruCevap:0, yanlisCevap:0
 };
 
 // ===== BOSS =====
 let boss = { hp:40, maxHp:40, state:'saldiri', attackCount:0, maxAttacks:4,
     attackTimer:0, breakWaitTimer:0, breakTimer:0, phaseIndex:0, isActive:false,
-    renkFlash:0 };  // Lazer animasyonu için
+    renkFlash:0 };
 let bossIntroTimer = null;
 
 // ============================================================
@@ -369,6 +365,7 @@ function renderEffects(timestamp) {
             ctx.globalAlpha = 1;
         }
     }
+    // Kırılgan boss üstünde dönen yıldızlar
     if (gameState.state === 'bossSavasi' && boss.isActive && boss.state === 'kirilgan') {
         let bx = screenWidth/2, by = screenHeight*0.14;
         for (let i = 0; i < 3; i++) {
@@ -461,8 +458,6 @@ function getDistanceFromLine(px, py, x1, y1, x2, y2) {
 // ===== BOSS =====
 function updateBoss(deltaTime, timestamp) {
     if (gameState.state !== 'bossSavasi' || !boss.isActive || boss.hp <= 0) return;
-    
-    // Renk flaşı sönüyor
     if (boss.renkFlash > 0) boss.renkFlash -= deltaTime * 16.67;
     
     if (boss.state === 'saldiri') {
@@ -471,12 +466,7 @@ function updateBoss(deltaTime, timestamp) {
             boss.attackTimer = boss.phaseIndex === 1 ? 1500 : 1400;
             boss.attackCount++;
             let bx = screenWidth/2, by = screenHeight*0.14+40;
-            
-            // Lazer atarken renk flaşı
-            if (boss.phaseIndex === 1) {
-                boss.renkFlash = 200;  // 200ms sarı yanıp söner
-            }
-            
+            if (boss.phaseIndex === 1) boss.renkFlash = 200;
             if (boss.phaseIndex === 0) {
                 let angle = U.a(bx, by, player.x, player.y);
                 enemyBullets.push({ x:bx, y:by, vx:Math.cos(angle)*4.5, vy:Math.sin(angle)*4.5,
@@ -538,10 +528,11 @@ function botGuncelle(enemy, deltaTime, timestamp) {
         enemy.charging = kalan < 500 && kalan > 0;
         if (timestamp - enemy.lastShot > enemy.shootInterval) {
             enemy.lastShot = timestamp;
-            let acilar = [-U.P/6, -U.P/12, 0, U.P/12, U.P/6];
+            // YENİ: 90° yelpaze (5 mermi)
+            let acilar = [-U.P/4, -U.P/8, 0, U.P/8, U.P/4];
             for (let a of acilar) {
                 let finalAngle = angle + a;
-                enemyBullets.push({ x:enemy.x, y:enemy.y, vx:Math.cos(finalAngle)*4.0, vy:Math.sin(finalAngle)*4.0, radius:6, type:'yelpaze' });
+                enemyBullets.push({ x:enemy.x, y:enemy.y, vx:Math.cos(finalAngle)*3.0, vy:Math.sin(finalAngle)*3.0, radius:6, type:'yelpaze' });
             }
             efektDogusDalgasi(enemy.x, enemy.y, colors.cyan);
             playSound(300, 0.15, 'triangle');
@@ -550,7 +541,8 @@ function botGuncelle(enemy, deltaTime, timestamp) {
     } else {
         if (timestamp - enemy.lastShot > enemy.shootInterval) {
             enemy.lastShot = timestamp;
-            enemyBullets.push({ x:enemy.x, y:enemy.y, vx:Math.cos(angle)*4.5, vy:Math.sin(angle)*4.5, radius:7, type:'bot' });
+            // YENİ: Mermi hızı 4.5 → 3.5
+            enemyBullets.push({ x:enemy.x, y:enemy.y, vx:Math.cos(angle)*3.5, vy:Math.sin(angle)*3.5, radius:7, type:'bot' });
             playSound(250, 0.08, 'triangle');
         }
     }
@@ -624,7 +616,6 @@ function cevapVer(secilenIndex) {
     setTimeout(() => {
         document.getElementById('questionScreen').style.display = 'none';
         if (gameState.state === 'soru') {
-            // Hangi duruma döneceğiz?
             if (gameState.transitionTarget === 'bossSavasi') startBossBattle();
             else startBotWave();
         }
@@ -642,7 +633,6 @@ document.querySelectorAll('.answerBtn').forEach(btn => {
 // ANA OYUN MANTIĞI
 // ============================================================
 function updateGameLogic(deltaTime, timestamp) {
-    // Soru ekranında oyun durur
     if (gameState.state === 'soru') return;
     
     let moveX = joystickState.active ? joystickState.x : 0;
@@ -787,7 +777,6 @@ function updateGameLogic(deltaTime, timestamp) {
     }
     updateEffects(deltaTime);
 
-    // Ulti dolum
     if (gameState.extraHeart === 0 && !gameState.ultiReady) {
         let nearBullets = 0;
         for (let bullet of enemyBullets) {
@@ -804,7 +793,6 @@ function updateGameLogic(deltaTime, timestamp) {
         }
     }
 
-    // DALGA GEÇİŞİ
     if (gameState.state === 'botDalga' && botEnemies.length === 0) {
         if (!gameState.waveClearPending) {
             gameState.waveClearPending = true;
@@ -816,11 +804,9 @@ function updateGameLogic(deltaTime, timestamp) {
                 gameState.waveClearDelay = 0;
                 if (gameState.botWaveIndex < 3) {
                     gameState.botWaveIndex++;
-                    // BOT DALGASI ÖNCESİ SORU
                     gameState.transitionTarget = 'botDalga';
                     soruGoster(gameState.toplamDalga + gameState.botWaveIndex);
                 } else {
-                    // 3 dalga tamamlandı → SORU → BOSS
                     gameState.transitionTarget = 'bossSavasi';
                     soruGoster(gameState.toplamDalga + 4);
                 }
@@ -859,25 +845,38 @@ function renderGame(timestamp) {
     }
     ctx.globalAlpha = 1;
 
+    // LAZER (kablo görünümü)
     for (let laser of lasers) {
         if (laser.state === 'warning') {
             ctx.strokeStyle = 'rgba(231,76,60,0.8)';
             ctx.lineWidth = Math.floor(timestamp/70)%2 ? 4 : 1.5;
             ctx.beginPath(); ctx.moveTo(laser.x1, laser.y1); ctx.lineTo(laser.x2, laser.y2); ctx.stroke();
         } else if (laser.state === 'active') {
-            ctx.strokeStyle = colors.yellow;
-            ctx.lineWidth = laser.width;
-            ctx.shadowColor = colors.red; ctx.shadowBlur = 18;
+            // YENİ: Cyan kablo + ⚡ uçlar
+            ctx.strokeStyle = "#00ffff";
+            ctx.lineWidth = 8;
+            ctx.shadowColor = "#00ffff"; ctx.shadowBlur = 18;
             ctx.beginPath(); ctx.moveTo(laser.x1, laser.y1); ctx.lineTo(laser.x2, laser.y2); ctx.stroke();
             ctx.shadowBlur = 0;
+            ctx.font = "22px serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("⚡", laser.x1, laser.y1);
+            ctx.fillText("⚡", laser.x2, laser.y2);
         }
     }
 
+    // DÜŞMAN MERMİLERİ
     for (let bullet of enemyBullets) {
         if (bullet.type === 'buyuk') {
-            daire(bullet.x, bullet.y, bullet.radius, bullet.isStopped ? colors.yellow : colors.orange, 15);
+            // YENİ: 🖱️ mouse emoji
+            ctx.font = "42px serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText("🖱️", bullet.x, bullet.y);
+            // Sekme göstergesi halka
             ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.radius*0.7, -U.P/2, -U.P/2 + U.P2*((5-bullet.bounces)/5)); ctx.stroke();
+            ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.radius*0.95, -U.P/2, -U.P/2 + U.P2*((5-bullet.bounces)/5)); ctx.stroke();
         } else if (bullet.type === 'yelpaze') {
             daire(bullet.x, bullet.y, bullet.radius, colors.cyan, 12);
         } else {
@@ -906,10 +905,9 @@ function renderGame(timestamp) {
 
     for (let bullet of playerBullets) daire(bullet.x, bullet.y, bullet.radius, colors.gold, 10);
 
-    // BOSS - RENK FLAŞI DESTEKLİ
+    // BOSS
     if (gameState.state === 'bossSavasi' && boss.isActive && boss.hp > 0) {
         let bx = screenWidth/2, by = screenHeight*0.14;
-        // Renk flaşı: 200ms boyunca sarı
         let renk = boss.renkFlash > 0 ? colors.yellow : (boss.state === 'kirilgan' ? colors.green : colors.red);
         daire(bx, by, 45, renk, 25);
         daire(bx, by, 22, '#000', 0);
@@ -918,7 +916,6 @@ function renderGame(timestamp) {
             ctx.strokeStyle = colors.gold; ctx.lineWidth = 3;
             ctx.beginPath(); ctx.arc(bx, by, 55, 0, U.P2); ctx.stroke();
         }
-        // Lazer atarken enerji halkası
         if (boss.renkFlash > 100) {
             let oran = (200 - boss.renkFlash) / 100;
             ctx.strokeStyle = colors.yellow; ctx.lineWidth = 4 * (1 - oran);
@@ -979,9 +976,10 @@ function startBotWave() {
 
     let idx = gameState.botWaveIndex;
     let morSayi, yelpazeSayi;
-    if (idx === 1) { morSayi = 2; yelpazeSayi = 0; }
-    else if (idx === 2) { morSayi = 2; yelpazeSayi = 1; }
-    else { morSayi = 1; yelpazeSayi = 2; }
+    // YENİ: 1-1-2 kompozisyonu
+    if (idx === 1) { morSayi = 1; yelpazeSayi = 0; }
+    else if (idx === 2) { morSayi = 1; yelpazeSayi = 1; }
+    else { morSayi = 2; yelpazeSayi = 1; }
 
     for (let i = 0; i < morSayi; i++) botSpawn('mor');
     for (let i = 0; i < yelpazeSayi; i++) botSpawn('yelpaze');
@@ -999,11 +997,13 @@ function botSpawn(tip) {
     else { x = arena.x - 40; y = U.r(arena.y, arena.y+arena.h); }
 
     if (tip === 'yelpaze') {
-        botEnemies.push({ x, y, radius:18, tip:'yelpaze', hp:12, maxHp:12, speed:1.35, idealDistance:130,
-            lastShot: Math.random()*4080, shootInterval:4080, charging:false });
+        // YENİ: Hafifletildi
+        botEnemies.push({ x, y, radius:18, tip:'yelpaze', hp:8, maxHp:8, speed:1.0, idealDistance:180,
+            lastShot: Math.random()*5500, shootInterval:5500, charging:false });
     } else {
-        botEnemies.push({ x, y, radius:18, tip:'mor', hp:6, maxHp:6, speed:1.15, idealDistance:170,
-            lastShot: Math.random()*1700, shootInterval:1700 + (Math.random()*400 - 200) });
+        // YENİ: Hafifletildi
+        botEnemies.push({ x, y, radius:18, tip:'mor', hp:4, maxHp:4, speed:0.9, idealDistance:220,
+            lastShot: Math.random()*2500, shootInterval:2500 + (Math.random()*400 - 200) });
     }
 }
 
@@ -1092,8 +1092,9 @@ function finishGame(isWin) {
     gameState.isRunning = false;
     let record = Math.max(gameState.score, parseInt(localStorage.getItem('recordKey') || '0'));
     localStorage.setItem('recordKey', record);
-    document.getElementById('gameOverTitle').textContent = isWin ? '🏆 KAZANDIN!' : 'OYUN BİTTİ';
-    document.getElementById('gameOverDesc').textContent = isWin ? "Boss'u yendin!" : "Yenildin";
+    // YENİ: İngilizce mesajlar
+    document.getElementById('gameOverTitle').textContent = isWin ? 'SYSTEM CLEAN!' : 'SYSTEM CRASHED!';
+    document.getElementById('gameOverDesc').textContent = isWin ? "Virus removed. Thank you, User." : "Virus won. Try again.";
     document.getElementById('gameOverScore').textContent = 'Skor: ' + gameState.score;
     document.getElementById('gameOverRecord').textContent = 'Rekor: ' + record;
     let toplam = gameState.dogruCevap + gameState.yanlisCevap;
