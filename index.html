@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+<title>KUTU SAVAŞI</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;user-select:none;-webkit-user-select:none;touch-action:none}
+html,body{width:100%;height:100%;overflow:hidden;background:#0a0a0f;font-family:sans-serif;overscroll-behavior:none}
+canvas{display:block;position:absolute;top:0;left:0}
+#dialogArea{position:absolute;top:0;left:0;width:100%;height:28%;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:5;pointer-events:none}
+#botFace{width:70px;height:70px;border-radius:50%;background:#e74c3c;transition:0.3s;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:bold;letter-spacing:1px}
+#speechBubble{margin-top:8px;background:rgba(0,0,0,0.85);border:2px solid #f1c40f;border-radius:12px;padding:8px 14px;color:#f1c40f;font-size:13px;min-height:18px;text-align:center;max-width:85%}
+#joystick{position:absolute;bottom:40px;left:30px;width:130px;height:130px;background:rgba(255,255,255,0.08);border:2px solid rgba(255,255,255,0.2);border-radius:50%;display:none;z-index:10}
+#joystickKnob{position:absolute;top:50%;left:50%;width:55px;height:55px;margin:-27.5px 0 0 -27.5px;background:#3498db;border-radius:50%}
+#ultiButton{position:absolute;bottom:60px;right:30px;width:80px;height:80px;border-radius:50%;background:#d35400;border:3px solid #fff;color:#fff;font-weight:bold;display:none;flex-direction:column;align-items:center;justify-content:center;font-size:12px;z-index:10;cursor:pointer}
+#ultiButton.ready{box-shadow:0 0 25px #f1c40f,0 0 40px #f1c40f;animation:pulseGlow 0.8s infinite;background:#2ecc71}
+#ultiButton.locked{background:#444;border-color:#666;box-shadow:none;animation:none;cursor:not-allowed}
+#ultiButton .ultiText{font-size:10px;font-weight:normal;opacity:0.9;margin-top:2px}
+@keyframes pulseGlow{50%{transform:scale(1.1)}}
+#scoreDisplay,#waveDisplay{position:absolute;top:10px;color:#fff;font-weight:bold;font-size:14px;z-index:6}
+#scoreDisplay{right:14px}
+#waveDisplay{left:50%;transform:translateX(-50%);color:#f1c40f}
+#healthBar{position:absolute;top:10px;left:14px;z-index:6;font-size:22px}
+#startButton{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);padding:18px 48px;font-size:20px;font-weight:bold;background:#2ecc71;color:#fff;border:none;border-radius:12px;z-index:20;cursor:pointer;letter-spacing:2px}
+#gameOverScreen{position:absolute;inset:0;background:rgba(0,0,0,0.88);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:30;color:#fff}
+#gameOverScreen h1{color:#f1c40f;font-size:32px;margin-bottom:14px;letter-spacing:3px}
+#gameOverScreen p{font-size:16px;margin:5px 0}
+#gameOverScreen button{margin-top:22px;padding:14px 40px;font-size:18px;font-weight:bold;background:#e74c3c;color:#fff;border:none;border-radius:10px;cursor:pointer}
+#warningOverlay{position:absolute;inset:0;background:rgba(231,76,60,0.4);display:none;z-index:8;pointer-events:none;animation:warningAnim 0.5s infinite}
+@keyframes warningAnim{50%{opacity:0.6}}
+
+/* İNGİLİZCE SORU EKRANI */
+#questionScreen{position:absolute;inset:0;background:rgba(0,0,0,0.94);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:25;padding:20px}
+#questionTense{color:#3498db;font-size:13px;font-weight:bold;letter-spacing:2px;margin-bottom:10px;text-transform:uppercase}
+#questionText{color:#fff;font-size:19px;text-align:center;max-width:90%;margin-bottom:22px;line-height:1.4}
+#answerGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;max-width:500px}
+.answerBtn{padding:16px 10px;font-size:15px;font-weight:bold;color:#fff;background:rgba(52,152,219,0.3);border:2px solid #3498db;border-radius:10px;cursor:pointer;transition:0.2s;text-align:center}
+.answerBtn:active{transform:scale(0.96)}
+.answerBtn.correct{background:#2ecc71;border-color:#2ecc71;animation:correctPulse 0.5s}
+.answerBtn.wrong{background:#e74c3c;border-color:#e74c3c;animation:wrongShake 0.5s}
+@keyframes correctPulse{50%{transform:scale(1.08)}}
+@keyframes wrongShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+#feedbackText{margin-top:16px;font-size:20px;font-weight:bold;min-height:28px;text-align:center}
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div id="warningOverlay"></div>
+<div id="dialogArea"><div id="botFace">BOT</div><div id="speechBubble">...</div></div>
+<div id="healthBar"></div>
+<div id="scoreDisplay">SKOR: 0</div>
+<div id="waveDisplay">DALGA: 1/3</div>
+<div id="joystick"><div id="joystickKnob"></div></div>
+<div id="ultiButton">ULTI<span class="ultiText" id="ultiText">0%</span></div>
+<button id="startButton">BAŞLA</button>
+<div id="gameOverScreen">
+<h1 id="gameOverTitle">OYUN BİTTİ</h1>
+<p id="gameOverDesc"></p>
+<p id="gameOverScore"></p>
+<p id="gameOverRecord"></p>
+<p id="gameOverStats"></p>
+<button id="restartButton">TEKRAR OYNA</button>
+</div>
+
+<!-- İNGİLİZCE SORU EKRANI -->
+<div id="questionScreen">
+<div id="questionTense">PRESENT SIMPLE</div>
+<div id="questionText">Loading...</div>
+<div id="answerGrid">
+<div class="answerBtn" data-index="0">A</div>
+<div class="answerBtn" data-index="1">B</div>
+<div class="answerBtn" data-index="2">C</div>
+<div class="answerBtn" data-index="3">D</div>
+</div>
+<div id="feedbackText"></div>
+</div>
+
+<script>
+// ===== TEMEL =====
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let screenWidth, screenHeight;
+let arena = { x:0, y:0, w:0, h:0 };
+let audioCtx = null;
+const botFaceEl = document.getElementById('botFace');
+
+const colors = { gold:'#f1c40f', red:'#e74c3c', green:'#2ecc71', purple:'#9b59b6', orange:'#ff6b35', yellow:'#ffcc00', gray:'#555', cyan:'#00d2d3', blue:'#3498db' };
+
+// ===== UTILITY =====
+const U = {
+    d: (x1,y1,x2,y2) => Math.hypot(x2-x1, y2-y1),
+    a: (x1,y1,x2,y2) => Math.atan2(y2-y1, x2-x1),
+    r: (min,max) => min + Math.random()*(max-min),
+    P: Math.PI,
+    P2: Math.PI*2
+};
+
+function daire(x, y, r, renk, glow) {
+    ctx.fillStyle = renk;
+    if (glow) { ctx.shadowColor = renk; ctx.shadowBlur = glow; }
+    ctx.beginPath(); ctx.arc(x, y, r, 0, U.P2); ctx.fill();
+    ctx.shadowBlur = 0;
+}
+function ucgen(x, y, boyut, renk, aci, glow) {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(aci);
+    ctx.fillStyle = renk;
+    if (glow) { ctx.shadowColor = renk; ctx.shadowBlur = glow; }
+    ctx.beginPath();
+    ctx.moveTo(boyut, 0); ctx.lineTo(-boyut*0.7, -boyut*0.7); ctx.lineTo(-boyut*0.7, boyut*0.7);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowBlur = 0; ctx.restore();
+}
+
+// ===== OYUNCU =====
+let player = { x:0, y:0, radius:18, speed:3.6, hp:5, maxHp:5, invulnerableTimer:0 };
+
+let enemyBullets = [], playerBullets = [], particles = [], effects = [], botEnemies = [], lasers = [];
+let keyboardKeys = {}, screenShake = 0, lastTime = 0;
+let joystickState = { active:false, x:0, y:0, id:null, centerX:0, centerY:0 };
+
+// ===== OYUN DURUMU =====
+let gameState = {
+    state:'botDalga', isRunning:false, score:0, gauge:0, ultiReady:false,
+    extraHeart:0, lastAutoFire:0,
+    botWaveIndex:1, toplamDalga:0,
+    transitionTimer:0, transitionTarget:'',
+    waveClearDelay: 0, waveClearPending: false,
+    // İstatistik
+    dogruCevap:0, yanlisCevap:0
+};
+
+// ===== BOSS =====
+let boss = { hp:40, maxHp:40, state:'saldiri', attackCount:0, maxAttacks:4,
+    attackTimer:0, breakWaitTimer:0, breakTimer:0, phaseIndex:0, isActive:false,
+    renkFlash:0 };  // Lazer animasyonu için
+let bossIntroTimer = null;
+
+// ============================================================
+// İNGİLİZCE SORULAR
+// ============================================================
+const sorular = {
+    presentSimple: [
+        { text: "She ___ to school every day.", options: ["go", "goes", "going", "went"], correct: 1 },
+        { text: "They ___ football on Sundays.", options: ["plays", "playing", "play", "played"], correct: 2 },
+        { text: "He ___ coffee every morning.", options: ["drink", "drinks", "drinking", "drank"], correct: 1 },
+        { text: "We ___ in Istanbul.", options: ["lives", "living", "live", "lived"], correct: 2 },
+        { text: "My sister ___ English very well.", options: ["speak", "speaks", "speaking", "spoke"], correct: 1 }
+    ],
+    presentContinuous: [
+        { text: "She ___ TV right now.", options: ["watch", "watches", "is watching", "watched"], correct: 2 },
+        { text: "They ___ in the park at the moment.", options: ["play", "plays", "are playing", "played"], correct: 2 },
+        { text: "I ___ for the bus now.", options: ["wait", "waits", "am waiting", "waited"], correct: 2 },
+        { text: "Look! The cat ___ on the sofa.", options: ["sleep", "sleeps", "is sleeping", "slept"], correct: 2 },
+        { text: "We ___ dinner right now.", options: ["cook", "cooks", "are cooking", "cooked"], correct: 2 }
+    ],
+    pastSimple: [
+        { text: "They ___ to Paris last year.", options: ["go", "goes", "went", "going"], correct: 2 },
+        { text: "She ___ a beautiful song yesterday.", options: ["sing", "sings", "sang", "singing"], correct: 2 },
+        { text: "I ___ my homework last night.", options: ["do", "does", "did", "doing"], correct: 2 },
+        { text: "We ___ pizza for dinner yesterday.", options: ["eat", "eats", "ate", "eating"], correct: 2 },
+        { text: "He ___ his keys this morning.", options: ["lose", "loses", "lost", "losing"], correct: 2 }
+    ],
+    presentPerfect: [
+        { text: "I have never ___ sushi before.", options: ["eat", "ate", "eaten", "eating"], correct: 2 },
+        { text: "She has just ___ home.", options: ["arrive", "arrived", "arriving", "arrives"], correct: 1 },
+        { text: "They have already ___ the film.", options: ["see", "saw", "seen", "seeing"], correct: 2 },
+        { text: "We ___ lived here for 5 years.", options: ["has", "have", "had", "having"], correct: 1 },
+        { text: "He hasn't ___ his work yet.", options: ["finish", "finishes", "finished", "finishing"], correct: 2 }
+    ],
+    future: [
+        { text: "We ___ visit grandma tomorrow.", options: ["will", "are", "did", "have"], correct: 0 },
+        { text: "She ___ be a doctor when she grows up.", options: ["is", "will", "was", "has"], correct: 1 },
+        { text: "I think it ___ rain tonight.", options: ["will", "is", "was", "did"], correct: 0 },
+        { text: "They ___ going to travel next summer.", options: ["is", "am", "are", "be"], correct: 2 },
+        { text: "He ___ call you later.", options: ["will", "is", "did", "was"], correct: 0 }
+    ]
+};
+
+const tenseSirasi = [
+    { key: 'presentSimple', label: 'PRESENT SIMPLE' },
+    { key: 'presentContinuous', label: 'PRESENT CONTINUOUS' },
+    { key: 'pastSimple', label: 'PAST SIMPLE' },
+    { key: 'presentPerfect', label: 'PRESENT PERFECT' },
+    { key: 'future', label: 'FUTURE' }
+];
+
+let aktifSoru = { soru:null, tenseLabel:'', dogruIndex:0, cevaplandi:false };
+
+// ============================================================
+// BOSS REPLİKLERİ (ŞAKACI + ÖVÜNEN)
+// ============================================================
+const bossReplikleri = {
+    karsilama: [
+        "Yine mi sen? En sevdiğim kurban!",
+        "Hoş geldin böcek! Biraz eğlenelim.",
+        "Beni yenebileceğini mi sandın? Komik!",
+        "Bu sefer kaçmayacaksın, değil mi?",
+        "Yeni oyuncak geldi! Haha!"
+    ],
+    kirilgan: [
+        "Vur hadi, vurabilirsen!",
+        "Beni yenmek için daha çok çalış!",
+        "Hadi, bir şans daha!",
+        "Hızlı ol, sıkıldım!"
+    ],
+    fazAtla: [
+        "Lazer keyfi başlıyor!",
+        "Bak bakalım şimdi ne yapacağım!",
+        "Dans edelim mi?",
+        "Bu sadece ısınma turu!"
+    ],
+    hasarYedi: [
+        "Aa, canım yandı! Şaka şaka!",
+        "İyi vuruş! Ama yeterli değil!",
+        "Ovv, bu beklenmedikti!",
+        "Hile! Hile yapıyorsun!"
+    ],
+    ultiYedi: [
+        "Hile! Hile!",
+        "Bu adil değil!",
+        "Bunu ödeyeceksin!",
+        "Hey! Kurallara uy!"
+    ],
+    olum: [
+        "Bu... benim hatam değil!",
+        "İmkansız! Ben... ben yenilmezim!",
+        "İyi oynadın... böcek!",
+        "Bu son değil, geri döneceğim!"
+    ]
+};
+
+function rastgeleReplik(kategori) {
+    let havuz = bossReplikleri[kategori];
+    return havuz[Math.floor(Math.random()*havuz.length)];
+}
+
+// ============================================================
+// CANVAS + KLAVYE + JOYSTICK + TIKLAMA
+// ============================================================
+function resizeCanvas() {
+    screenWidth = canvas.width = window.innerWidth;
+    screenHeight = canvas.height = window.innerHeight;
+    arena.x = 20;
+    arena.y = screenHeight * 0.28 + 20;
+    arena.w = screenWidth - 40;
+    arena.h = screenHeight - arena.y - 20;
+    if (player && player.radius) {
+        player.x = Math.max(arena.x+player.radius, Math.min(arena.x+arena.w-player.radius, player.x||arena.x+player.radius));
+        player.y = Math.max(arena.y+player.radius, Math.min(arena.y+arena.h-player.radius, player.y||arena.y+player.radius));
+    }
+}
+window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+window.addEventListener('keydown', (e) => { keyboardKeys[e.key.toLowerCase()] = true; if (e.key !== 'F12') e.preventDefault(); });
+window.addEventListener('keyup', (e) => keyboardKeys[e.key.toLowerCase()] = false);
+
+const joystickElement = document.getElementById('joystick');
+const joystickKnob = document.getElementById('joystickKnob');
+function updateJoystick(touch) {
+    let dx = touch.clientX - joystickState.centerX;
+    let dy = touch.clientY - joystickState.centerY;
+    let distance = U.d(0,0,dx,dy);
+    if (distance > 55) { dx = (dx/distance)*55; dy = (dy/distance)*55; }
+    joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+    joystickState.x = dx/55; joystickState.y = dy/55;
+}
+joystickElement.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    let rect = joystickElement.getBoundingClientRect();
+    joystickState.centerX = rect.left + rect.width/2;
+    joystickState.centerY = rect.top + rect.height/2;
+    joystickState.id = e.changedTouches[0].identifier;
+    joystickState.active = true;
+    updateJoystick(e.changedTouches[0]);
+}, { passive:false });
+window.addEventListener('touchmove', (e) => {
+    if (!joystickState.active) return;
+    for (let touch of e.changedTouches) if (touch.identifier === joystickState.id) updateJoystick(touch);
+}, { passive:false });
+window.addEventListener('touchend', (e) => {
+    for (let touch of e.changedTouches) {
+        if (touch.identifier === joystickState.id) {
+            joystickState.active = false; joystickState.x = 0; joystickState.y = 0;
+            joystickKnob.style.transform = 'translate(0, 0)';
+        }
+    }
+});
+
+function addClickEvent(el, handler) {
+    let locked = false;
+    const run = () => { if (locked) return; locked = true; setTimeout(() => locked = false, 250); handler(); };
+    el.addEventListener('click', run);
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); run(); }, { passive:false });
+}
+
+function playSound(freq, duration, type = 'sine') {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    } catch (e) {}
+}
+
+const setDialogMessage = (msg) => document.getElementById('speechBubble').textContent = msg;
+const setBotFace = (bgColor, text) => { botFaceEl.style.background = bgColor; botFaceEl.textContent = text; };
+
+function createParticles(x, y, color, count) {
+    for (let i = 0; i < count; i++) {
+        let angle = Math.random() * U.P2;
+        let speed = Math.random() * 3 + 1;
+        particles.push({ x, y, vx:Math.cos(angle)*speed, vy:Math.sin(angle)*speed,
+            radius:Math.random()*3+2, life:300, maxLife:300, color });
+    }
+}
+
+// ===== EFEKT =====
+function efektSokDalgasi(x, y, renk) { effects.push({ tip:'sok', x, y, yas:0, omur:400, renk, maxR:80 }); }
+function efektYildizPatlamasi(x, y) { effects.push({ tip:'yildiz', x, y, yas:0, omur:300, aci:Math.random()*U.P2 }); }
+function efektCarpmaKivilcimi(x, y, renk) { for (let i = 0; i < 5; i++) effects.push({ tip:'carpma', x, y, yas:0, omur:200, renk, aci:(U.P2/5)*i + Math.random()*0.5 }); }
+function efektDogusDalgasi(x, y, renk) { effects.push({ tip:'dogus', x, y, yas:0, omur:350, renk, maxR:50 }); }
+function efektNamluAtesi(x, y, aci, renk) { effects.push({ tip:'namlu', x, y, yas:0, omur:150, renk, aci:aci+U.P }); }
+
+function updateEffects(dt) {
+    for (let i = effects.length - 1; i >= 0; i--) {
+        effects[i].yas += dt * 16.67;
+        if (effects[i].yas >= effects[i].omur) effects.splice(i, 1);
+    }
+}
+
+function renderEffects(timestamp) {
+    for (let e of effects) {
+        let oran = e.yas / e.omur;
+        if (e.tip === 'sok') {
+            ctx.strokeStyle = e.renk; ctx.globalAlpha = 1 - oran; ctx.lineWidth = 6 * (1 - oran);
+            ctx.beginPath(); ctx.arc(e.x, e.y, e.maxR * oran, 0, U.P2); ctx.stroke();
+            ctx.globalAlpha = 1;
+        } else if (e.tip === 'yildiz') {
+            let uz = 40 * (1 - oran);
+            ctx.strokeStyle = '#fff'; ctx.globalAlpha = 1 - oran; ctx.lineWidth = 3;
+            for (let i = 0; i < 8; i++) {
+                let a = e.aci + (U.P/4) * i;
+                ctx.beginPath();
+                ctx.moveTo(e.x + Math.cos(a)*5, e.y + Math.sin(a)*5);
+                ctx.lineTo(e.x + Math.cos(a)*(5+uz), e.y + Math.sin(a)*(5+uz));
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        } else if (e.tip === 'carpma') {
+            let uz = 15 * (1 - oran);
+            ctx.strokeStyle = e.renk; ctx.globalAlpha = 1 - oran; ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(e.x, e.y);
+            ctx.lineTo(e.x + Math.cos(e.aci)*uz, e.y + Math.sin(e.aci)*uz);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        } else if (e.tip === 'dogus') {
+            ctx.strokeStyle = e.renk; ctx.globalAlpha = 1 - oran; ctx.lineWidth = 4 * (1 - oran);
+            ctx.beginPath(); ctx.arc(e.x, e.y, e.maxR * oran, 0, U.P2); ctx.stroke();
+            ctx.globalAlpha = 1;
+        } else if (e.tip === 'namlu') {
+            let uz = 12 * (1 - oran);
+            ctx.fillStyle = e.renk; ctx.globalAlpha = 1 - oran;
+            ctx.beginPath(); ctx.arc(e.x + Math.cos(e.aci)*uz, e.y + Math.sin(e.aci)*uz, 5*(1-oran), 0, U.P2); ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+    if (gameState.state === 'bossSavasi' && boss.isActive && boss.state === 'kirilgan') {
+        let bx = screenWidth/2, by = screenHeight*0.14;
+        for (let i = 0; i < 3; i++) {
+            let a = (timestamp/400) + (U.P2/3) * i;
+            let sx = bx + Math.cos(a) * 55;
+            let sy = by + Math.sin(a) * 55;
+            ctx.fillStyle = '#ffcc00'; ctx.shadowColor = '#ffcc00'; ctx.shadowBlur = 15;
+            ctx.beginPath();
+            for (let k = 0; k < 8; k++) {
+                let ang = (U.P/4) * k;
+                let r = k % 2 === 0 ? 10 : 4;
+                let px = sx + Math.cos(ang) * r;
+                let py = sy + Math.sin(ang) * r;
+                if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+            }
+            ctx.closePath(); ctx.fill(); ctx.shadowBlur = 0;
+        }
+    }
+}
+
+// ===== HASAR =====
+function handleDamage() {
+    if (player.invulnerableTimer > 0) return;
+    if (gameState.extraHeart > 0) {
+        gameState.extraHeart = 0; gameState.gauge = 0; gameState.ultiReady = false;
+        player.invulnerableTimer = 1200; screenShake = 14;
+        playSound(150, 0.2, 'sawtooth');
+        updateHealthBar(); updateUltiButton();
+        setDialogMessage('Bonus kalkan kırıldı!');
+        return;
+    }
+    player.hp--; player.invulnerableTimer = 1200; screenShake = 14;
+    playSound(150, 0.2, 'sawtooth');
+    updateHealthBar();
+    if (player.hp <= 0) finishGame(false);
+}
+
+// ===== OYUNCU ATEŞ =====
+function firePlayerBullet() {
+    if (gameState.state === 'bossSavasi' && boss.state === 'kirilgan' && boss.hp > 0) {
+        let angle = U.a(player.x, player.y, screenWidth/2, screenHeight*0.14);
+        playerBullets.push({ x:player.x, y:player.y, vx:Math.cos(angle)*11, vy:Math.sin(angle)*11, radius:5, life:250, target:'boss' });
+        efektNamluAtesi(player.x, player.y, angle, colors.gold);
+        playSound(600, 0.05, 'square');
+        return;
+    }
+    if (gameState.state === 'botDalga' && botEnemies.length > 0) {
+        let closestEnemy = botEnemies[0], minDistance = Infinity;
+        for (let enemy of botEnemies) {
+            let dist = U.d(enemy.x, enemy.y, player.x, player.y);
+            if (dist < minDistance) { minDistance = dist; closestEnemy = enemy; }
+        }
+        let angle = U.a(player.x, player.y, closestEnemy.x, closestEnemy.y);
+        playerBullets.push({ x:player.x, y:player.y, vx:Math.cos(angle)*11, vy:Math.sin(angle)*11, radius:5, life:90, target:'bot' });
+        efektNamluAtesi(player.x, player.y, angle, colors.gold);
+        playSound(600, 0.05, 'square');
+    }
+}
+
+// ===== LAZER =====
+function createLaser(px, py, angle) {
+    let cos = Math.cos(angle), sin = Math.sin(angle);
+    let len = Math.max(screenWidth, screenHeight) * 2;
+    lasers.push({ x1:px-cos*len, y1:py-sin*len, x2:px+cos*len, y2:py+sin*len,
+        warningTimer:1500, activeTimer:300, state:'warning', width:14 });
+}
+function triggerSixLaserAttack() {
+    let angleToPlayer = U.a(screenWidth/2, screenHeight*0.14+40, player.x, player.y);
+    createLaser(player.x, player.y, angleToPlayer);
+    for (let i = 0; i < 5; i++) {
+        let rx = U.r(arena.x, arena.x+arena.w);
+        let ry = U.r(arena.y, arena.y+arena.h);
+        let ra = Math.random() * U.P2;
+        createLaser(rx, ry, ra);
+    }
+    playSound(400, 0.2, 'sawtooth');
+}
+function getDistanceFromLine(px, py, x1, y1, x2, y2) {
+    let A = px-x1, B = py-y1, C = x2-x1, D = y2-y1;
+    let dot = A*C + B*D, len_sq = C*C + D*D;
+    let param = -1;
+    if (len_sq !== 0) param = dot/len_sq;
+    let xx, yy;
+    if (param < 0) { xx = x1; yy = y1; }
+    else if (param > 1) { xx = x2; yy = y2; }
+    else { xx = x1 + param*C; yy = y1 + param*D; }
+    return U.d(px, py, xx, yy);
+}
+
+// ===== BOSS =====
+function updateBoss(deltaTime, timestamp) {
+    if (gameState.state !== 'bossSavasi' || !boss.isActive || boss.hp <= 0) return;
+    
+    // Renk flaşı sönüyor
+    if (boss.renkFlash > 0) boss.renkFlash -= deltaTime * 16.67;
+    
+    if (boss.state === 'saldiri') {
+        boss.attackTimer -= deltaTime * 16.67;
+        if (boss.attackTimer <= 0 && boss.attackCount < boss.maxAttacks) {
+            boss.attackTimer = boss.phaseIndex === 1 ? 1500 : 1400;
+            boss.attackCount++;
+            let bx = screenWidth/2, by = screenHeight*0.14+40;
+            
+            // Lazer atarken renk flaşı
+            if (boss.phaseIndex === 1) {
+                boss.renkFlash = 200;  // 200ms sarı yanıp söner
+            }
+            
+            if (boss.phaseIndex === 0) {
+                let angle = U.a(bx, by, player.x, player.y);
+                enemyBullets.push({ x:bx, y:by, vx:Math.cos(angle)*4.5, vy:Math.sin(angle)*4.5,
+                    radius:18, type:'buyuk', bounces:0, isInside:false, isStopped:false, stopTimer:0 });
+                efektDogusDalgasi(bx, by, colors.orange);
+                playSound(200, 0.15, 'triangle');
+            } else {
+                triggerSixLaserAttack();
+            }
+        }
+        if (boss.attackCount >= boss.maxAttacks) {
+            boss.state = 'bekleme';
+            boss.breakWaitTimer = 600;
+        }
+    } else if (boss.state === 'bekleme') {
+        boss.breakWaitTimer -= deltaTime * 16.67;
+        if (boss.breakWaitTimer <= 0) {
+            boss.state = 'kirilgan';
+            boss.breakTimer = 2800;
+            setBotFace(colors.green, 'VUR!');
+            setDialogMessage(rastgeleReplik('kirilgan'));
+            playSound(900, 0.3, 'sine');
+        }
+    } else if (boss.state === 'kirilgan') {
+        boss.breakTimer -= deltaTime * 16.67;
+        botFaceEl.style.opacity = Math.floor(timestamp/150)%2 ? '0.6' : '1';
+        if (boss.breakTimer <= 0) {
+            boss.phaseIndex = (boss.phaseIndex + 1) % 2;
+            boss.attackCount = 0;
+            boss.isActive = false;
+            botFaceEl.style.opacity = '1';
+            gameState.botWaveIndex = 1;
+            startBotWave();
+        }
+    }
+}
+
+// ===== BOT =====
+function botGuncelle(enemy, deltaTime, timestamp) {
+    let dist = U.d(enemy.x, enemy.y, player.x, player.y);
+    let angle = U.a(enemy.x, enemy.y, player.x, player.y);
+    let inArena = enemy.x > arena.x-30 && enemy.x < arena.x+arena.w+30 && enemy.y > arena.y-30 && enemy.y < arena.y+arena.h+30;
+
+    if (!inArena) {
+        enemy.x += Math.cos(angle)*enemy.speed*deltaTime;
+        enemy.y += Math.sin(angle)*enemy.speed*deltaTime;
+        return;
+    }
+    if (dist > enemy.idealDistance + 20) {
+        enemy.x += Math.cos(angle)*enemy.speed*deltaTime;
+        enemy.y += Math.sin(angle)*enemy.speed*deltaTime;
+    } else if (dist < enemy.idealDistance - 20) {
+        enemy.x -= Math.cos(angle)*enemy.speed*deltaTime;
+        enemy.y -= Math.sin(angle)*enemy.speed*deltaTime;
+    }
+
+    if (enemy.tip === 'yelpaze') {
+        let kalan = enemy.shootInterval - (timestamp - enemy.lastShot);
+        enemy.charging = kalan < 500 && kalan > 0;
+        if (timestamp - enemy.lastShot > enemy.shootInterval) {
+            enemy.lastShot = timestamp;
+            let acilar = [-U.P/6, -U.P/12, 0, U.P/12, U.P/6];
+            for (let a of acilar) {
+                let finalAngle = angle + a;
+                enemyBullets.push({ x:enemy.x, y:enemy.y, vx:Math.cos(finalAngle)*4.0, vy:Math.sin(finalAngle)*4.0, radius:6, type:'yelpaze' });
+            }
+            efektDogusDalgasi(enemy.x, enemy.y, colors.cyan);
+            playSound(300, 0.15, 'triangle');
+            screenShake = 5;
+        }
+    } else {
+        if (timestamp - enemy.lastShot > enemy.shootInterval) {
+            enemy.lastShot = timestamp;
+            enemyBullets.push({ x:enemy.x, y:enemy.y, vx:Math.cos(angle)*4.5, vy:Math.sin(angle)*4.5, radius:7, type:'bot' });
+            playSound(250, 0.08, 'triangle');
+        }
+    }
+
+    if (dist < enemy.radius + player.radius) {
+        let hasarAlinabilir = player.invulnerableTimer <= 0;
+        if (hasarAlinabilir) {
+            handleDamage();
+            enemy.x -= Math.cos(angle)*25;
+            enemy.y -= Math.sin(angle)*25;
+        }
+    }
+}
+
+// ============================================================
+// SORU SİSTEMİ
+// ============================================================
+function soruGoster(dalgaNumarasi) {
+    gameState.state = 'soru';
+    let tenseIndex = (dalgaNumarasi - 1) % tenseSirasi.length;
+    let tense = tenseSirasi[tenseIndex];
+    let soruHavuzu = sorular[tense.key];
+    let soru = soruHavuzu[Math.floor(Math.random() * soruHavuzu.length)];
+    
+    aktifSoru.soru = soru;
+    aktifSoru.tenseLabel = tense.label;
+    aktifSoru.dogruIndex = soru.correct;
+    aktifSoru.cevaplandi = false;
+    
+    document.getElementById('questionTense').textContent = tense.label;
+    document.getElementById('questionText').textContent = soru.text;
+    document.getElementById('feedbackText').textContent = '';
+    
+    let btns = document.querySelectorAll('.answerBtn');
+    btns.forEach((btn, i) => {
+        btn.textContent = soru.options[i];
+        btn.classList.remove('correct', 'wrong');
+        btn.style.pointerEvents = 'auto';
+    });
+    
+    document.getElementById('questionScreen').style.display = 'flex';
+    setBotFace(colors.blue, '?');
+    setDialogMessage('Soruyu cevapla!');
+    playSound(700, 0.2, 'sine');
+}
+
+function cevapVer(secilenIndex) {
+    if (aktifSoru.cevaplandi) return;
+    aktifSoru.cevaplandi = true;
+    
+    let btns = document.querySelectorAll('.answerBtn');
+    let dogruMu = (secilenIndex === aktifSoru.dogruIndex);
+    btns.forEach(btn => btn.style.pointerEvents = 'none');
+    btns[aktifSoru.dogruIndex].classList.add('correct');
+    if (!dogruMu) btns[secilenIndex].classList.add('wrong');
+    
+    if (dogruMu) {
+        gameState.dogruCevap++;
+        gameState.score += 100;
+        document.getElementById('feedbackText').textContent = '✓ Doğru! +100';
+        document.getElementById('feedbackText').style.color = '#2ecc71';
+        playSound(900, 0.3, 'sine');
+    } else {
+        gameState.yanlisCevap++;
+        document.getElementById('feedbackText').textContent = '✗ Yanlış!';
+        document.getElementById('feedbackText').style.color = '#e74c3c';
+        playSound(200, 0.4, 'sawtooth');
+    }
+    updateScoreDisplay();
+    
+    setTimeout(() => {
+        document.getElementById('questionScreen').style.display = 'none';
+        if (gameState.state === 'soru') {
+            // Hangi duruma döneceğiz?
+            if (gameState.transitionTarget === 'bossSavasi') startBossBattle();
+            else startBotWave();
+        }
+    }, 2000);
+}
+
+document.querySelectorAll('.answerBtn').forEach(btn => {
+    addClickEvent(btn, () => {
+        let idx = parseInt(btn.dataset.index);
+        cevapVer(idx);
+    });
+});
+
+// ============================================================
+// ANA OYUN MANTIĞI
+// ============================================================
+function updateGameLogic(deltaTime, timestamp) {
+    // Soru ekranında oyun durur
+    if (gameState.state === 'soru') return;
+    
+    let moveX = joystickState.active ? joystickState.x : 0;
+    let moveY = joystickState.active ? joystickState.y : 0;
+    if (keyboardKeys['w'] || keyboardKeys['arrowup']) moveY--;
+    if (keyboardKeys['s'] || keyboardKeys['arrowdown']) moveY++;
+    if (keyboardKeys['a'] || keyboardKeys['arrowleft']) moveX--;
+    if (keyboardKeys['d'] || keyboardKeys['arrowright']) moveX++;
+
+    let length = U.d(0,0,moveX,moveY);
+    if (length > 1) { moveX /= length; moveY /= length; }
+
+    player.x = Math.max(arena.x + player.radius, Math.min(arena.x + arena.w - player.radius, player.x + moveX*player.speed*deltaTime));
+    player.y = Math.max(arena.y + player.radius, Math.min(arena.y + arena.h - player.radius, player.y + moveY*player.speed*deltaTime));
+    if (player.invulnerableTimer > 0) player.invulnerableTimer -= deltaTime * 16.67;
+
+    for (let enemy of botEnemies) botGuncelle(enemy, deltaTime, timestamp);
+
+    // OYUNCU MERMİLERİ
+    for (let i = playerBullets.length - 1; i >= 0; i--) {
+        let bullet = playerBullets[i];
+        bullet.x += bullet.vx * deltaTime; bullet.y += bullet.vy * deltaTime; bullet.life -= deltaTime;
+        if (bullet.target === 'boss') {
+            if (U.d(bullet.x, bullet.y, screenWidth/2, screenHeight*0.14) < bullet.radius + 45) {
+                if (boss.state === 'kirilgan') {
+                    boss.hp--;
+                    createParticles(bullet.x, bullet.y, colors.gold, 8);
+                    efektCarpmaKivilcimi(bullet.x, bullet.y, colors.gold);
+                    playSound(500, 0.1, 'square');
+                    gameState.score += 5;
+                    updateScoreDisplay();
+                    if (boss.hp <= 0) triggerBossDeath();
+                }
+                playerBullets.splice(i, 1); continue;
+            }
+            if (bullet.life <= 0) playerBullets.splice(i, 1);
+            continue;
+        }
+        if (bullet.life <= 0) { playerBullets.splice(i, 1); continue; }
+        let hit = false;
+        for (let j = botEnemies.length - 1; j >= 0; j--) {
+            let enemy = botEnemies[j];
+            if (U.d(bullet.x, bullet.y, enemy.x, enemy.y) < bullet.radius + enemy.radius) {
+                enemy.hp--;
+                createParticles(bullet.x, bullet.y, colors.gold, 5);
+                efektCarpmaKivilcimi(bullet.x, bullet.y, colors.gold);
+                playerBullets.splice(i, 1); hit = true;
+                if (enemy.hp <= 0) {
+                    gameState.score += 20;
+                    createParticles(enemy.x, enemy.y, enemy.tip === 'yelpaze' ? colors.cyan : colors.red, 12);
+                    efektSokDalgasi(enemy.x, enemy.y, enemy.tip === 'yelpaze' ? colors.cyan : colors.purple);
+                    botEnemies.splice(j, 1); updateScoreDisplay();
+                    playSound(400, 0.1, 'triangle');
+                }
+                break;
+            }
+        }
+        if (hit) continue;
+    }
+
+    // LAZER
+    for (let i = lasers.length - 1; i >= 0; i--) {
+        let laser = lasers[i];
+        if (laser.state === 'warning') {
+            laser.warningTimer -= deltaTime * 16.67;
+            if (laser.warningTimer <= 0) {
+                laser.state = 'active'; screenShake = 7;
+                playSound(700, 0.15, 'sawtooth');
+            }
+        } else if (laser.state === 'active') {
+            laser.activeTimer -= deltaTime * 16.67;
+            let dist = getDistanceFromLine(player.x, player.y, laser.x1, laser.y1, laser.x2, laser.y2);
+            if (dist < player.radius + laser.width/2) handleDamage();
+            if (laser.activeTimer <= 0) lasers.splice(i, 1);
+        }
+    }
+
+    // DÜŞMAN MERMİLERİ
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+        let bullet = enemyBullets[i];
+        bullet.x += bullet.vx * deltaTime; bullet.y += bullet.vy * deltaTime;
+        
+        if (bullet.type === 'buyuk') {
+            if (U.d(bullet.x, bullet.y, screenWidth/2, screenHeight/2) > 2500) { enemyBullets.splice(i, 1); continue; }
+            if (bullet.isStopped) {
+                bullet.stopTimer -= deltaTime * 16.67;
+                if (bullet.stopTimer <= 0) {
+                    for (let k = 0; k < 3; k++) {
+                        let angle = U.P/2 + (k-1) * (U.P/6);
+                        enemyBullets.push({ x:bullet.x, y:bullet.y, vx:Math.cos(angle)*6.5, vy:Math.sin(angle)*6.5, radius:7, type:'kucuk' });
+                    }
+                    createParticles(bullet.x, bullet.y, colors.orange, 12);
+                    efektSokDalgasi(bullet.x, bullet.y, colors.orange);
+                    efektYildizPatlamasi(bullet.x, bullet.y);
+                    playSound(350, 0.1, 'square'); screenShake = 10;
+                    enemyBullets.splice(i, 1); continue;
+                }
+            } else {
+                if (!bullet.isInside && bullet.x > arena.x+bullet.radius && bullet.x < arena.x+arena.w-bullet.radius && bullet.y > arena.y+bullet.radius && bullet.y < arena.y+arena.h-bullet.radius) {
+                    bullet.isInside = true;
+                    let speed = U.d(0,0,bullet.vx,bullet.vy);
+                    let angle = Math.atan2(bullet.vy, bullet.vx) + (Math.random()-0.5)*0.6;
+                    bullet.vx = Math.cos(angle)*speed; bullet.vy = Math.sin(angle)*speed;
+                }
+                if (bullet.isInside) {
+                    let bounced = false;
+                    if (bullet.x-bullet.radius <= arena.x && bullet.vx < 0) { bullet.vx = -bullet.vx; bullet.x = arena.x+bullet.radius; bounced = true; }
+                    if (bullet.x+bullet.radius >= arena.x+arena.w && bullet.vx > 0) { bullet.vx = -bullet.vx; bullet.x = arena.x+arena.w-bullet.radius; bounced = true; }
+                    if (bullet.y-bullet.radius <= arena.y && bullet.vy < 0) { bullet.vy = -bullet.vy; bullet.y = arena.y+bullet.radius; bounced = true; }
+                    if (bullet.y+bullet.radius >= arena.y+arena.h && bullet.vy > 0) { bullet.vy = -bullet.vy; bullet.y = arena.y+arena.h-bullet.radius; bounced = true; }
+                    if (bounced) {
+                        bullet.bounces++;
+                        createParticles(bullet.x, bullet.y, colors.orange, 4);
+                        playSound(280, 0.06, 'square');
+                        bullet.vx *= 0.9; bullet.vy *= 0.9;
+                        if (bullet.bounces >= 5) { bullet.isStopped = true; bullet.stopTimer = 500; bullet.vx = bullet.vy = 0; }
+                    }
+                }
+            }
+            if (U.d(bullet.x, bullet.y, player.x, player.y) < bullet.radius+player.radius) {
+                handleDamage(); createParticles(bullet.x, bullet.y, colors.orange, 10);
+                enemyBullets.splice(i, 1); continue;
+            }
+            continue;
+        }
+        if (bullet.x < arena.x-80 || bullet.x > arena.x+arena.w+80 || bullet.y < arena.y-80 || bullet.y > arena.y+arena.h+80) {
+            enemyBullets.splice(i, 1); continue;
+        }
+        if (U.d(bullet.x, bullet.y, player.x, player.y) < bullet.radius+player.radius) {
+            handleDamage(); enemyBullets.splice(i, 1); continue;
+        }
+    }
+
+    updateBoss(deltaTime, timestamp);
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        p.x += p.vx * deltaTime; p.y += p.vy * deltaTime;
+        p.vx *= 0.95; p.vy *= 0.95;
+        p.life -= deltaTime * 16.67;
+        if (p.life <= 0) particles.splice(i, 1);
+    }
+    updateEffects(deltaTime);
+
+    // Ulti dolum
+    if (gameState.extraHeart === 0 && !gameState.ultiReady) {
+        let nearBullets = 0;
+        for (let bullet of enemyBullets) {
+            let dist = U.d(bullet.x, bullet.y, player.x, player.y);
+            if (dist < player.radius+40+bullet.radius && dist > bullet.radius+player.radius) nearBullets++;
+        }
+        if (nearBullets > 0) {
+            gameState.gauge += deltaTime * 16.67 * nearBullets * 1.8;
+            if (gameState.gauge >= 12000) {
+                gameState.gauge = 12000; gameState.ultiReady = true;
+                setDialogMessage('ULTI HAZIR!'); playSound(900, 0.4, 'sine');
+            }
+            updateUltiButton();
+        }
+    }
+
+    // DALGA GEÇİŞİ
+    if (gameState.state === 'botDalga' && botEnemies.length === 0) {
+        if (!gameState.waveClearPending) {
+            gameState.waveClearPending = true;
+            gameState.waveClearDelay = 1200;
+        } else {
+            gameState.waveClearDelay -= deltaTime * 16.67;
+            if (gameState.waveClearDelay <= 0) {
+                gameState.waveClearPending = false;
+                gameState.waveClearDelay = 0;
+                if (gameState.botWaveIndex < 3) {
+                    gameState.botWaveIndex++;
+                    // BOT DALGASI ÖNCESİ SORU
+                    gameState.transitionTarget = 'botDalga';
+                    soruGoster(gameState.toplamDalga + gameState.botWaveIndex);
+                } else {
+                    // 3 dalga tamamlandı → SORU → BOSS
+                    gameState.transitionTarget = 'bossSavasi';
+                    soruGoster(gameState.toplamDalga + 4);
+                }
+            }
+        }
+    } else if (gameState.state === 'gecis') {
+        gameState.transitionTimer -= deltaTime * 16.67;
+        if (gameState.transitionTimer <= 0 && gameState.transitionTarget === 'bossSavasi') startBossBattle();
+    }
+
+    if (timestamp - gameState.lastAutoFire > 220) {
+        gameState.lastAutoFire = timestamp;
+        firePlayerBullet();
+    }
+}
+
+// ===== ÇİZİM =====
+function renderGame(timestamp) {
+    ctx.clearRect(0, 0, screenWidth, screenHeight);
+    ctx.save();
+    if (screenShake > 0) {
+        ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+        screenShake *= 0.9; if (screenShake < 0.5) screenShake = 0;
+    }
+
+    let borderColor = gameState.ultiReady ? colors.yellow : gameState.extraHeart > 0 ? colors.gold : (gameState.state === 'bossSavasi' && boss.state === 'kirilgan') ? colors.green : colors.red;
+    ctx.strokeStyle = borderColor; ctx.lineWidth = 3;
+    ctx.shadowColor = borderColor; ctx.shadowBlur = 10;
+    ctx.strokeRect(arena.x, arena.y, arena.w, arena.h);
+    ctx.shadowBlur = 0;
+
+    for (let p of particles) {
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life/p.maxLife;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.radius*(p.life/p.maxLife), 0, U.P2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    for (let laser of lasers) {
+        if (laser.state === 'warning') {
+            ctx.strokeStyle = 'rgba(231,76,60,0.8)';
+            ctx.lineWidth = Math.floor(timestamp/70)%2 ? 4 : 1.5;
+            ctx.beginPath(); ctx.moveTo(laser.x1, laser.y1); ctx.lineTo(laser.x2, laser.y2); ctx.stroke();
+        } else if (laser.state === 'active') {
+            ctx.strokeStyle = colors.yellow;
+            ctx.lineWidth = laser.width;
+            ctx.shadowColor = colors.red; ctx.shadowBlur = 18;
+            ctx.beginPath(); ctx.moveTo(laser.x1, laser.y1); ctx.lineTo(laser.x2, laser.y2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+    }
+
+    for (let bullet of enemyBullets) {
+        if (bullet.type === 'buyuk') {
+            daire(bullet.x, bullet.y, bullet.radius, bullet.isStopped ? colors.yellow : colors.orange, 15);
+            ctx.strokeStyle = '#fff'; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(bullet.x, bullet.y, bullet.radius*0.7, -U.P/2, -U.P/2 + U.P2*((5-bullet.bounces)/5)); ctx.stroke();
+        } else if (bullet.type === 'yelpaze') {
+            daire(bullet.x, bullet.y, bullet.radius, colors.cyan, 12);
+        } else {
+            daire(bullet.x, bullet.y, bullet.radius, bullet.type === 'kucuk' ? colors.yellow : colors.orange, 10);
+        }
+    }
+
+    for (let enemy of botEnemies) {
+        if (enemy.tip === 'yelpaze') {
+            let renk = enemy.charging && Math.floor(timestamp/100)%2 ? colors.red : colors.cyan;
+            let aci = U.a(enemy.x, enemy.y, player.x, player.y);
+            ucgen(enemy.x, enemy.y, enemy.radius, renk, aci, 12);
+            daire(enemy.x, enemy.y, enemy.radius*0.25, '#fff', 0);
+            if (enemy.charging) {
+                let kalan = enemy.shootInterval - (timestamp - enemy.lastShot);
+                let oran = 1 - kalan/500;
+                ctx.strokeStyle = colors.red; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(enemy.x, enemy.y, enemy.radius + 8 + oran*10, 0, U.P2 * oran); ctx.stroke();
+            }
+        } else {
+            daire(enemy.x, enemy.y, enemy.radius, colors.purple, 10);
+            daire(enemy.x, enemy.y, enemy.radius*0.4, '#fff', 0);
+            daire(enemy.x, enemy.y, enemy.radius*0.2, '#000', 0);
+        }
+    }
+
+    for (let bullet of playerBullets) daire(bullet.x, bullet.y, bullet.radius, colors.gold, 10);
+
+    // BOSS - RENK FLAŞI DESTEKLİ
+    if (gameState.state === 'bossSavasi' && boss.isActive && boss.hp > 0) {
+        let bx = screenWidth/2, by = screenHeight*0.14;
+        // Renk flaşı: 200ms boyunca sarı
+        let renk = boss.renkFlash > 0 ? colors.yellow : (boss.state === 'kirilgan' ? colors.green : colors.red);
+        daire(bx, by, 45, renk, 25);
+        daire(bx, by, 22, '#000', 0);
+        daire(bx, by-8, 8, '#fff', 0);
+        if (boss.state === 'kirilgan') {
+            ctx.strokeStyle = colors.gold; ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(bx, by, 55, 0, U.P2); ctx.stroke();
+        }
+        // Lazer atarken enerji halkası
+        if (boss.renkFlash > 100) {
+            let oran = (200 - boss.renkFlash) / 100;
+            ctx.strokeStyle = colors.yellow; ctx.lineWidth = 4 * (1 - oran);
+            ctx.globalAlpha = 1 - oran;
+            ctx.beginPath(); ctx.arc(bx, by, 45 + oran * 60, 0, U.P2); ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    if (gameState.state === 'bossSavasi' && boss.isActive && boss.hp > 0) {
+        let barWidth = Math.min(screenWidth*0.7, 400);
+        let barX = (screenWidth-barWidth)/2; let barY = screenHeight*0.28 - 18;
+        ctx.fillStyle = 'rgba(0,0,0,0.7)'; ctx.fillRect(barX, barY, barWidth, 10);
+        ctx.fillStyle = boss.state === 'kirilgan' ? colors.green : colors.red;
+        ctx.fillRect(barX+1, barY+1, (barWidth-2)*(boss.hp/boss.maxHp), 8);
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.strokeRect(barX, barY, barWidth, 10);
+        ctx.save();
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillText(`BOSS HP ${boss.hp}/${boss.maxHp}`, screenWidth/2, barY-3);
+        ctx.restore();
+    }
+
+    if (gameState.isRunning) {
+        ctx.globalAlpha = (player.invulnerableTimer > 0 && Math.floor(timestamp/100)%2) ? 0.4 : 1;
+        if (gameState.extraHeart > 0) {
+            ctx.strokeStyle = colors.gold; ctx.lineWidth = 3;
+            ctx.shadowColor = colors.gold; ctx.shadowBlur = 15;
+            ctx.beginPath(); ctx.arc(player.x, player.y, player.radius+6, 0, U.P2); ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        daire(player.x, player.y, player.radius, colors.gold, 18);
+        daire(player.x, player.y, player.radius*0.45, '#fff', 0);
+        daire(player.x, player.y-2, player.radius*0.15, '#000', 0);
+        ctx.globalAlpha = 1;
+    }
+
+    renderEffects(timestamp);
+    ctx.restore();
+}
+
+// ===== ANA DÖNGÜ =====
+const mainLoop = (timestamp) => {
+    let deltaTime = Math.min(50, timestamp - lastTime) / 16.67;
+    lastTime = timestamp;
+    if (gameState.isRunning) updateGameLogic(deltaTime, timestamp);
+    renderGame(timestamp);
+    requestAnimationFrame(mainLoop);
+};
+requestAnimationFrame(mainLoop);
+
+// ===== BOT DALGA =====
+function startBotWave() {
+    gameState.state = 'botDalga';
+    gameState.waveClearPending = false;
+    gameState.waveClearDelay = 0;
+    botEnemies = [];
+    gameState.toplamDalga++;
+
+    let idx = gameState.botWaveIndex;
+    let morSayi, yelpazeSayi;
+    if (idx === 1) { morSayi = 2; yelpazeSayi = 0; }
+    else if (idx === 2) { morSayi = 2; yelpazeSayi = 1; }
+    else { morSayi = 1; yelpazeSayi = 2; }
+
+    for (let i = 0; i < morSayi; i++) botSpawn('mor');
+    for (let i = 0; i < yelpazeSayi; i++) botSpawn('yelpaze');
+
+    setDialogMessage(`DALGA ${idx}/3 — Tur ${gameState.toplamDalga}`);
+    setBotFace(colors.red, 'BOT');
+    updateWaveDisplay();
+}
+
+function botSpawn(tip) {
+    let x, y, corner = Math.floor(Math.random()*4);
+    if (corner === 0) { x = U.r(arena.x, arena.x+arena.w); y = arena.y - 40; }
+    else if (corner === 1) { x = arena.x + arena.w + 40; y = U.r(arena.y, arena.y+arena.h); }
+    else if (corner === 2) { x = U.r(arena.x, arena.x+arena.w); y = arena.y + arena.h + 40; }
+    else { x = arena.x - 40; y = U.r(arena.y, arena.y+arena.h); }
+
+    if (tip === 'yelpaze') {
+        botEnemies.push({ x, y, radius:18, tip:'yelpaze', hp:12, maxHp:12, speed:1.35, idealDistance:130,
+            lastShot: Math.random()*4080, shootInterval:4080, charging:false });
+    } else {
+        botEnemies.push({ x, y, radius:18, tip:'mor', hp:6, maxHp:6, speed:1.15, idealDistance:170,
+            lastShot: Math.random()*1700, shootInterval:1700 + (Math.random()*400 - 200) });
+    }
+}
+
+function startBossBattle() {
+    gameState.state = 'bossSavasi';
+    boss.isActive = true;
+    boss.state = 'saldiri';
+    boss.attackCount = 0;
+    boss.attackTimer = 800;
+    boss.renkFlash = 0;
+    document.getElementById('warningOverlay').style.display = 'block';
+    playSound(200, 0.5, 'sawtooth');
+    setDialogMessage('HAZIR OL!');
+    
+    if (bossIntroTimer) clearTimeout(bossIntroTimer);
+    bossIntroTimer = setTimeout(() => {
+        bossIntroTimer = null;
+        if (gameState.state !== 'bossSavasi') return;
+        document.getElementById('warningOverlay').style.display = 'none';
+        setBotFace(colors.red, 'BOSS');
+        setDialogMessage(rastgeleReplik('karsilama'));
+        playSound(150, 0.4, 'sawtooth');
+    }, 1800);
+    updateWaveDisplay();
+}
+
+function triggerBossDeath() {
+    boss.hp = 0; boss.isActive = false;
+    botFaceEl.style.opacity = '1';
+    createParticles(screenWidth/2, screenHeight*0.14, colors.gold, 40);
+    efektSokDalgasi(screenWidth/2, screenHeight*0.14, colors.gold);
+    efektYildizPatlamasi(screenWidth/2, screenHeight*0.14);
+    screenShake = 40; playSound(100, 1, 'sawtooth');
+    setBotFace(colors.gray, 'X');
+    setDialogMessage(rastgeleReplik('olum'));
+    setTimeout(() => finishGame(true), 2000);
+}
+
+function startTransition(targetState, duration) {
+    gameState.state = 'gecis';
+    gameState.transitionTimer = duration;
+    gameState.transitionTarget = targetState;
+    document.getElementById('waveDisplay').textContent = '...';
+}
+
+// ===== UI =====
+function updateHealthBar() {
+    document.getElementById('healthBar').textContent = '❤️️'.repeat(Math.max(0, player.hp)) + '🖤'.repeat(Math.max(0, player.maxHp-player.hp)) + (gameState.extraHeart > 0 ? ' 💛' : '');
+}
+const updateScoreDisplay = () => document.getElementById('scoreDisplay').textContent = 'SKOR: ' + gameState.score;
+const updateWaveDisplay = () => document.getElementById('waveDisplay').textContent = 
+    gameState.state === 'bossSavasi' ? 'BOSS' : 
+    gameState.state === 'gecis' ? '...' :
+    gameState.state === 'soru' ? 'SORU' :
+    `DALGA: ${gameState.botWaveIndex}/3`;
+
+function updateUltiButton() {
+    let btn = document.getElementById('ultiButton');
+    let txt = document.getElementById('ultiText');
+    let percent = Math.floor(Math.min(1, gameState.gauge/12000) * 100);
+    txt.textContent = gameState.extraHeart > 0 ? '🔒' : percent + '%';
+    btn.className = '';
+    if (gameState.extraHeart > 0) btn.className = 'locked';
+    else if (gameState.ultiReady) btn.className = 'ready';
+}
+
+addClickEvent(document.getElementById('ultiButton'), () => {
+    if (!gameState.isRunning || gameState.extraHeart > 0 || !gameState.ultiReady) return;
+    gameState.ultiReady = false; gameState.gauge = 0; gameState.extraHeart = 1;
+    enemyBullets.forEach(m => createParticles(m.x, m.y, colors.gold, 3));
+    enemyBullets = [];
+    lasers = lasers.filter(l => l.state === 'active');
+    botEnemies.forEach(b => { createParticles(b.x, b.y, colors.gold, 8); gameState.score += 15; });
+    botEnemies = [];
+    if (gameState.state === 'bossSavasi' && boss.isActive && boss.state === 'kirilgan') {
+        boss.hp -= 3;
+        if (boss.hp <= 0) triggerBossDeath();
+        else setDialogMessage(rastgeleReplik('ultiYedi'));
+    }
+    screenShake = 25; playSound(120, 0.5, 'sawtooth');
+    updateScoreDisplay(); updateHealthBar(); updateUltiButton();
+    setDialogMessage('+1 CAN!');
+});
+
+function finishGame(isWin) {
+    gameState.isRunning = false;
+    let record = Math.max(gameState.score, parseInt(localStorage.getItem('recordKey') || '0'));
+    localStorage.setItem('recordKey', record);
+    document.getElementById('gameOverTitle').textContent = isWin ? '🏆 KAZANDIN!' : 'OYUN BİTTİ';
+    document.getElementById('gameOverDesc').textContent = isWin ? "Boss'u yendin!" : "Yenildin";
+    document.getElementById('gameOverScore').textContent = 'Skor: ' + gameState.score;
+    document.getElementById('gameOverRecord').textContent = 'Rekor: ' + record;
+    let toplam = gameState.dogruCevap + gameState.yanlisCevap;
+    let yuzde = toplam > 0 ? Math.floor((gameState.dogruCevap / toplam) * 100) : 0;
+    document.getElementById('gameOverStats').textContent = `İngilizce: ${gameState.dogruCevap}/${toplam} doğru (${yuzde}%)`;
+    document.getElementById('gameOverScreen').style.display = 'flex';
+    document.getElementById('joystick').style.display = 'none';
+    document.getElementById('ultiButton').style.display = 'none';
+}
+
+function startGame() {
+    document.getElementById('startButton').style.display = 'none';
+    document.getElementById('joystick').style.display = 'block';
+    document.getElementById('ultiButton').style.display = 'flex';
+    document.getElementById('gameOverScreen').style.display = 'none';
+    player.x = arena.x + arena.w/2; player.y = arena.y + arena.h/2;
+    player.hp = player.maxHp; player.invulnerableTimer = 0;
+    gameState.isRunning = true; gameState.score = 0;
+    gameState.botWaveIndex = 1; gameState.toplamDalga = 0;
+    gameState.gauge = 0; gameState.ultiReady = false; gameState.extraHeart = 0;
+    gameState.transitionTimer = 0; gameState.lastAutoFire = 0;
+    gameState.state = 'botDalga'; gameState.transitionTarget = '';
+    gameState.waveClearDelay = 0; gameState.waveClearPending = false;
+    gameState.dogruCevap = 0; gameState.yanlisCevap = 0;
+    if (bossIntroTimer) { clearTimeout(bossIntroTimer); bossIntroTimer = null; }
+    document.getElementById('warningOverlay').style.display = 'none';
+    botFaceEl.style.opacity = '1';
+    document.getElementById('waveDisplay').textContent = 'DALGA: 1/3';
+    boss.isActive = false; boss.hp = boss.maxHp; boss.state = 'saldiri';
+    boss.phaseIndex = 0; boss.renkFlash = 0;
+    botEnemies = []; enemyBullets = []; playerBullets = [];
+    lasers = []; particles = []; effects = []; screenShake = 0;
+    setBotFace(colors.red, 'BOT');
+    updateHealthBar(); updateScoreDisplay(); updateUltiButton();
+    setDialogMessage('Hazır mısın?');
+    setTimeout(() => { if (gameState.isRunning) startBotWave(); }, 800);
+}
+
+addClickEvent(document.getElementById('startButton'), startGame);
+addClickEvent(document.getElementById('restartButton'), startGame);
+</script>
+</body>
+</html>
