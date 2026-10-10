@@ -1,8 +1,7 @@
 // ============================================================
-// UTILS.JS - Yardımcı fonksiyonlar
+// UTILS.JS - Yardımcı fonksiyonlar + efekt sistemi
 // ============================================================
-window.yuklenenDosyalar.push('utils');
-console.log("[✓] utils.js yüklendi");
+window.dosyaYuklendi('utils');
 
 // Kısa yardımcılar
 const U = {
@@ -65,7 +64,9 @@ const setBotFace = (bgColor, text) => {
     botFaceEl.textContent = text;
 };
 
-// ===== EFEKT SİSTEMİ =====
+// ============================================================
+// EFEKT SİSTEMİ
+// ============================================================
 function efektSokDalgasi(x, y, renk) {
     effects.push({ tip: 'sok', x, y, yas: 0, omur: 400, renk, maxR: 80 });
 }
