@@ -9,7 +9,7 @@
 <body>
 
 <!-- ============================================================ -->
-<!-- YÜKLEME PANELİ - Dosyalar yüklenirken görünür -->
+<!-- YÜKLEME PANELİ -->
 <!-- ============================================================ -->
 <div id="yuklemePaneli">
     <h2>📚 Sistem Başlatılıyor</h2>
@@ -18,7 +18,12 @@
 </div>
 
 <!-- ============================================================ -->
-<!-- OYUN ALANI - Yükleme bitince görünür -->
+<!-- HATA PANELİ (ekranda hata gösterir) -->
+<!-- ============================================================ -->
+<div id="hataPanel"></div>
+
+<!-- ============================================================ -->
+<!-- OYUN ALANI -->
 <!-- ============================================================ -->
 <div id="oyunAlani" style="display:none;">
 
@@ -68,23 +73,15 @@
 <!-- YÜKLEME TAKİP SİSTEMİ -->
 <!-- ============================================================ -->
 <script>
-    // Yüklenen dosyaları burada tutacağız
     window.yuklenenDosyalar = [];
-
-    // Yüklenmesi gereken tüm dosyalar
     window.beklenenDosyalar = [
         'config', 'utils', 'questions', 'input', 'ui',
         'player', 'bot', 'boss', 'bullet', 'game'
     ];
 
-    // Dosya yüklenince çağrılır - hem konsola hem ekrana yazar
     window.dosyaYuklendi = function(ad) {
         window.yuklenenDosyalar.push(ad);
-        
-        // Konsola yaz
         console.log("[✓] " + ad + ".js yüklendi");
-        
-        // Ekrana yaz
         const liste = document.getElementById('yuklemeListesi');
         if (liste) {
             const satir = document.createElement('div');
@@ -94,23 +91,19 @@
         }
     };
 
-    // Tüm dosyalar yüklendi mi kontrol et
     window.yuklemeKontrol = function() {
         const eksikler = window.beklenenDosyalar.filter(d => !window.yuklenenDosyalar.includes(d));
         const durum = document.getElementById('yuklemeDurum');
-        
+
         if (eksikler.length === 0) {
             if (durum) {
                 durum.textContent = '✓ Tüm dosyalar yüklendi!';
                 durum.style.color = '#2ecc71';
             }
             console.log("✓ Tüm dosyalar yüklendi");
-            
-            // 0.5 saniye sonra paneli gizle, oyunu göster
             setTimeout(() => {
                 document.getElementById('yuklemePaneli').style.display = 'none';
                 document.getElementById('oyunAlani').style.display = 'block';
-                // Canvas boyutunu yeniden ayarla
                 if (typeof resizeCanvas === 'function') resizeCanvas();
             }, 500);
         } else {
@@ -146,6 +139,64 @@
 <!-- ============================================================ -->
 <script>
     window.yuklemeKontrol();
+</script>
+
+<!-- ============================================================ -->
+<!-- HATA YAKALAYICI - Ekranda hata gösterir -->
+<!-- ============================================================ -->
+<script>
+    // Tüm hataları ekranda göster
+    window.addEventListener('error', (e) => {
+        const panel = document.getElementById('hataPanel');
+        panel.style.display = 'block';
+        panel.style.background = 'rgba(231,76,60,0.95)';
+        panel.textContent += '❌ HATA:\n';
+        panel.textContent += 'Dosya: ' + (e.filename || '?').split('/').pop() + '\n';
+        panel.textContent += 'Satır: ' + (e.lineno || '?') + '\n';
+        panel.textContent += 'Mesaj: ' + (e.message || '?') + '\n\n';
+    });
+
+    // Sayfa yüklendikten 2 saniye sonra durum bilgisi
+    setTimeout(() => {
+        const panel = document.getElementById('hataPanel');
+        if (panel.style.display === 'block') return; // hata varsa dokunma
+
+        let durum = '📊 DURUM\n';
+        durum += '─────────────\n';
+        durum += 'Yüklenen: ' + (window.yuklenenDosyalar || []).length + '/10\n';
+        durum += 'gameState: ' + (typeof gameState !== 'undefined' ? '✓' : '✗') + '\n';
+        durum += 'player: ' + (typeof player !== 'undefined' ? 'x=' + Math.round(player.x) + ' y=' + Math.round(player.y) : '✗') + '\n';
+        durum += 'botEnemies: ' + (typeof botEnemies !== 'undefined' ? botEnemies.length : '✗') + '\n';
+        durum += 'canvas: ' + (typeof canvas !== 'undefined' ? canvas.width + 'x' + canvas.height : '✗') + '\n';
+        durum += 'arena: ' + (typeof arena !== 'undefined' ? arena.w + 'x' + arena.h : '✗') + '\n';
+        panel.textContent = durum;
+        panel.style.background = 'rgba(52,152,219,0.9)';
+        panel.style.display = 'block';
+    }, 2000);
+
+    // BAŞLA butonuna basınca durumu güncelle
+    window.addEventListener('load', () => {
+        setTimeout(() => {
+            const startBtn = document.getElementById('startButton');
+            if (startBtn) {
+                startBtn.addEventListener('click', () => {
+                    setTimeout(() => {
+                        const panel = document.getElementById('hataPanel');
+                        let durum = '📊 OYUN BAŞLADI\n';
+                        durum += '─────────────\n';
+                        durum += 'isRunning: ' + (typeof gameState !== 'undefined' ? gameState.isRunning : '✗') + '\n';
+                        durum += 'state: ' + (typeof gameState !== 'undefined' ? gameState.state : '✗') + '\n';
+                        durum += 'botEnemies: ' + (typeof botEnemies !== 'undefined' ? botEnemies.length : '✗') + '\n';
+                        durum += 'player: ' + (typeof player !== 'undefined' ? 'x=' + Math.round(player.x) + ' y=' + Math.round(player.y) : '✗') + '\n';
+                        durum += 'canvas: ' + (typeof canvas !== 'undefined' ? canvas.width + 'x' + canvas.height : '✗') + '\n';
+                        panel.textContent = durum;
+                        panel.style.background = 'rgba(52,152,219,0.9)';
+                        panel.style.display = 'block';
+                    }, 1500);
+                });
+            }
+        }, 2500);
+    });
 </script>
 
 </body>
