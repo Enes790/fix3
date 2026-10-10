@@ -1,0 +1,341 @@
+/* ============================================================
+   KUTU SAVAŞI - Ana Stil Dosyası
+   ============================================================ */
+console.log("[✓] style.css yüklendi");
+
+/* ============================================================
+   GENEL SIFIRLAMA
+   ============================================================ */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0a0a0f;
+    font-family: sans-serif;
+    overscroll-behavior: none;
+}
+
+canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* ============================================================
+   DİYALOG ALANI (ÜST KISIM - BOT YÜZÜ + KONUŞMA)
+   ============================================================ */
+#dialogArea {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 28%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 5;
+    pointer-events: none;
+}
+
+#botFace {
+    width: 70px;
+    height: 70px;
+    border-radius: 12px;
+    background: #e74c3c;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+}
+
+#speechBubble {
+    margin-top: 8px;
+    background: rgba(0, 0, 0, 0.85);
+    border: 2px solid #f1c40f;
+    border-radius: 12px;
+    padding: 8px 14px;
+    color: #f1c40f;
+    font-size: 13px;
+    min-height: 18px;
+    text-align: center;
+    max-width: 85%;
+}
+
+/* ============================================================
+   JOYSTICK (MOBİL HAREKET)
+   ============================================================ */
+#joystick {
+    position: absolute;
+    bottom: 40px;
+    left: 30px;
+    width: 130px;
+    height: 130px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: none;
+    z-index: 10;
+}
+
+#joystickKnob {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 55px;
+    height: 55px;
+    margin: -27.5px 0 0 -27.5px;
+    background: #3498db;
+    border-radius: 50%;
+}
+
+/* ============================================================
+   ULTI BUTONU
+   ============================================================ */
+#ultiButton {
+    position: absolute;
+    bottom: 60px;
+    right: 30px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #d35400;
+    border: 3px solid #fff;
+    color: #fff;
+    font-weight: bold;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    z-index: 10;
+    cursor: pointer;
+}
+
+#ultiButton.ready {
+    box-shadow: 0 0 25px #f1c40f, 0 0 40px #f1c40f;
+    animation: pulseGlow 0.8s infinite;
+    background: #2ecc71;
+}
+
+#ultiButton.locked {
+    background: #444;
+    border-color: #666;
+    box-shadow: none;
+    animation: none;
+    cursor: not-allowed;
+}
+
+#ultiButton .ultiText {
+    font-size: 10px;
+    font-weight: normal;
+    opacity: 0.9;
+    margin-top: 2px;
+}
+
+@keyframes pulseGlow {
+    50% { transform: scale(1.1); }
+}
+
+/* ============================================================
+   ÜST GÖSTERGELER (SKOR, DALGA, CAN)
+   ============================================================ */
+#scoreDisplay, #waveDisplay {
+    position: absolute;
+    top: 10px;
+    color: #fff;
+    font-weight: bold;
+    font-size: 14px;
+    z-index: 6;
+}
+
+#scoreDisplay { right: 14px; }
+
+#waveDisplay {
+    left: 50%;
+    transform: translateX(-50%);
+    color: #f1c40f;
+}
+
+#healthBar {
+    position: absolute;
+    top: 10px;
+    left: 14px;
+    z-index: 6;
+    font-size: 22px;
+}
+
+/* ============================================================
+   BAŞLAT BUTONU
+   ============================================================ */
+#startButton {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 18px 48px;
+    font-size: 20px;
+    font-weight: bold;
+    background: #2ecc71;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    z-index: 20;
+    cursor: pointer;
+    letter-spacing: 2px;
+}
+
+/* ============================================================
+   OYUN SONU EKRANI
+   ============================================================ */
+#gameOverScreen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.88);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+    color: #fff;
+}
+
+#gameOverScreen h1 {
+    color: #f1c40f;
+    font-size: 32px;
+    margin-bottom: 14px;
+    letter-spacing: 3px;
+}
+
+#gameOverScreen p {
+    font-size: 16px;
+    margin: 5px 0;
+}
+
+#gameOverScreen button {
+    margin-top: 22px;
+    padding: 14px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    background: #e74c3c;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+/* ============================================================
+   BOSS UYARI OVERLAY (KIRMIZI YANIP SÖNEN)
+   ============================================================ */
+#warningOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(231, 76, 60, 0.4);
+    display: none;
+    z-index: 8;
+    pointer-events: none;
+    animation: warningAnim 0.5s infinite;
+}
+
+@keyframes warningAnim {
+    50% { opacity: 0.6; }
+}
+
+/* ============================================================
+   İNGİLİZCE SORU EKRANI
+   ============================================================ */
+#questionScreen {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.94);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 25;
+    padding: 20px;
+}
+
+#questionTense {
+    color: #3498db;
+    font-size: 13px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+#questionText {
+    color: #fff;
+    font-size: 19px;
+    text-align: center;
+    max-width: 90%;
+    margin-bottom: 22px;
+    line-height: 1.4;
+}
+
+#answerGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.answerBtn {
+    padding: 16px 10px;
+    font-size: 15px;
+    font-weight: bold;
+    color: #fff;
+    background: rgba(52, 152, 219, 0.3);
+    border: 2px solid #3498db;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: 0.2s;
+    text-align: center;
+}
+
+.answerBtn:active {
+    transform: scale(0.96);
+}
+
+.answerBtn.correct {
+    background: #2ecc71;
+    border-color: #2ecc71;
+    animation: correctPulse 0.5s;
+}
+
+.answerBtn.wrong {
+    background: #e74c3c;
+    border-color: #e74c3c;
+    animation: wrongShake 0.5s;
+}
+
+@keyframes correctPulse {
+    50% { transform: scale(1.08); }
+}
+
+@keyframes wrongShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+}
+
+#feedbackText {
+    margin-top: 16px;
+    font-size: 20px;
+    font-weight: bold;
+    min-height: 28px;
+    text-align: center;
+}
