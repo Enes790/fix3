@@ -1,10 +1,9 @@
 // ============================================================
-// CONFIG.JS - Tüm sabitler ve replik havuzu
+// CONFIG.JS - Renkler, sabitler, boss replikleri
 // ============================================================
-window.yuklenenDosyalar.push('config');
-console.log("[✓] config.js yüklendi");
+window.dosyaYuklendi('config');
 
-// Renk paleti - tüm oyunun renkleri
+// Renk paleti
 const colors = {
     gold:'#f1c40f',
     red:'#e74c3c',
@@ -17,7 +16,7 @@ const colors = {
     blue:'#3498db'
 };
 
-// Boss kişilik - şakacı + övünen + bozuk bilgisayar
+// Boss kişiliği - şakacı + övünen + bozuk bilgisayar
 const bossReplikleri = {
     karsilama: [
         "Hello... who am I? System... broken!",
@@ -58,7 +57,6 @@ const bossReplikleri = {
     ]
 };
 
-// Rastgele replik seç
 function rastgeleReplik(kategori) {
     const havuz = bossReplikleri[kategori];
     return havuz[Math.floor(Math.random() * havuz.length)];
