@@ -3,74 +3,132 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
-<title>KUTU SAVAŞI</title>
-<!-- CSS ayrı dosyada -->
+<title>İngilizce Soru Bankası</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<!-- Ana oyun tuvali -->
-<canvas id="gameCanvas"></canvas>
-
-<!-- Boss öncesi kırmızı uyarı ekranı -->
-<div id="warningOverlay"></div>
-
-<!-- Üst diyalog: bot yüzü + konuşma balonu -->
-<div id="dialogArea">
-    <div id="botFace">🖥️</div>
-    <div id="speechBubble">...</div>
-</div>
-
-<!-- Sol üst can, sağ üst skor, ortada dalga -->
-<div id="healthBar"></div>
-<div id="scoreDisplay">SKOR: 0</div>
-<div id="waveDisplay">DALGA: 1/3</div>
-
-<!-- Mobil joystick -->
-<div id="joystick"><div id="joystickKnob"></div></div>
-
-<!-- Ulti butonu -->
-<div id="ultiButton">ULTI<span class="ultiText" id="ultiText">0%</span></div>
-
-<!-- Başlat butonu -->
-<button id="startButton">BAŞLA</button>
-
-<!-- Oyun sonu ekranı -->
-<div id="gameOverScreen">
-    <h1 id="gameOverTitle">OYUN BİTTİ</h1>
-    <p id="gameOverDesc"></p>
-    <p id="gameOverScore"></p>
-    <p id="gameOverRecord"></p>
-    <p id="gameOverStats"></p>
-    <button id="restartButton">TEKRAR OYNA</button>
-</div>
-
-<!-- İngilizce soru ekranı -->
-<div id="questionScreen">
-    <div id="questionTense">PRESENT SIMPLE</div>
-    <div id="questionText">Loading...</div>
-    <div id="answerGrid">
-        <div class="answerBtn" data-index="0">A</div>
-        <div class="answerBtn" data-index="1">B</div>
-        <div class="answerBtn" data-index="2">C</div>
-        <div class="answerBtn" data-index="3">D</div>
-    </div>
-    <div id="feedbackText"></div>
+<!-- ============================================================ -->
+<!-- YÜKLEME PANELİ - Dosyalar yüklenirken görünür -->
+<!-- ============================================================ -->
+<div id="yuklemePaneli">
+    <h2>📚 Sistem Başlatılıyor</h2>
+    <div id="yuklemeListesi"></div>
+    <div id="yuklemeDurum">Yükleniyor...</div>
 </div>
 
 <!-- ============================================================ -->
-<!-- DEBUG: Yükleme takibi için yüklenen dosyaları tutan array -->
+<!-- OYUN ALANI - Yükleme bitince görünür -->
+<!-- ============================================================ -->
+<div id="oyunAlani" style="display:none;">
+
+    <canvas id="gameCanvas"></canvas>
+
+    <div id="warningOverlay"></div>
+
+    <div id="dialogArea">
+        <div id="botFace">🖥️</div>
+        <div id="speechBubble">...</div>
+    </div>
+
+    <div id="healthBar"></div>
+    <div id="scoreDisplay">SKOR: 0</div>
+    <div id="waveDisplay">DALGA: 1/3</div>
+
+    <div id="joystick"><div id="joystickKnob"></div></div>
+
+    <div id="ultiButton">ULTI<span class="ultiText" id="ultiText">0%</span></div>
+
+    <button id="startButton">BAŞLA</button>
+
+    <div id="gameOverScreen">
+        <h1 id="gameOverTitle">OYUN BİTTİ</h1>
+        <p id="gameOverDesc"></p>
+        <p id="gameOverScore"></p>
+        <p id="gameOverRecord"></p>
+        <p id="gameOverStats"></p>
+        <button id="restartButton">TEKRAR OYNA</button>
+    </div>
+
+    <div id="questionScreen">
+        <div id="questionTense">PRESENT SIMPLE</div>
+        <div id="questionText">Loading...</div>
+        <div id="answerGrid">
+            <div class="answerBtn" data-index="0">A</div>
+            <div class="answerBtn" data-index="1">B</div>
+            <div class="answerBtn" data-index="2">C</div>
+            <div class="answerBtn" data-index="3">D</div>
+        </div>
+        <div id="feedbackText"></div>
+    </div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- YÜKLEME TAKİP SİSTEMİ -->
 <!-- ============================================================ -->
 <script>
+    // Yüklenen dosyaları burada tutacağız
     window.yuklenenDosyalar = [];
+
+    // Yüklenmesi gereken tüm dosyalar
+    window.beklenenDosyalar = [
+        'config', 'utils', 'questions', 'input', 'ui',
+        'player', 'bot', 'boss', 'bullet', 'game'
+    ];
+
+    // Dosya yüklenince çağrılır - hem konsola hem ekrana yazar
+    window.dosyaYuklendi = function(ad) {
+        window.yuklenenDosyalar.push(ad);
+        
+        // Konsola yaz
+        console.log("[✓] " + ad + ".js yüklendi");
+        
+        // Ekrana yaz
+        const liste = document.getElementById('yuklemeListesi');
+        if (liste) {
+            const satir = document.createElement('div');
+            satir.className = 'yuklemeSatir';
+            satir.textContent = '[✓] ' + ad + '.js yüklendi';
+            liste.appendChild(satir);
+        }
+    };
+
+    // Tüm dosyalar yüklendi mi kontrol et
+    window.yuklemeKontrol = function() {
+        const eksikler = window.beklenenDosyalar.filter(d => !window.yuklenenDosyalar.includes(d));
+        const durum = document.getElementById('yuklemeDurum');
+        
+        if (eksikler.length === 0) {
+            if (durum) {
+                durum.textContent = '✓ Tüm dosyalar yüklendi!';
+                durum.style.color = '#2ecc71';
+            }
+            console.log("✓ Tüm dosyalar yüklendi");
+            
+            // 0.5 saniye sonra paneli gizle, oyunu göster
+            setTimeout(() => {
+                document.getElementById('yuklemePaneli').style.display = 'none';
+                document.getElementById('oyunAlani').style.display = 'block';
+                // Canvas boyutunu yeniden ayarla
+                if (typeof resizeCanvas === 'function') resizeCanvas();
+            }, 500);
+        } else {
+            if (durum) {
+                durum.innerHTML = '✗ Eksik dosyalar:<br>' + eksikler.join(', ');
+                durum.style.color = '#e74c3c';
+            }
+            console.error("Eksik dosyalar:", eksikler);
+        }
+    };
+
     console.log("═══════════════════════════════════");
-    console.log("KUTU SAVAŞI - Yükleme Başlıyor");
+    console.log("Yükleme başlıyor...");
     console.log("═══════════════════════════════════");
 </script>
 
 <!-- ============================================================ -->
-<!-- YÜKLEME SIRASI ÖNEMLİ! -->
-<!-- config → utils → questions → input → ui → player → bot → boss → bullet → game -->
+<!-- DOSYALARI YÜKLE (sıra önemli) -->
 <!-- ============================================================ -->
 <script src="config.js"></script>
 <script src="utils.js"></script>
@@ -84,19 +142,10 @@
 <script src="game.js"></script>
 
 <!-- ============================================================ -->
-<!-- YÜKLEME KONTROLÜ - Tüm dosyalar yüklendi mi? -->
+<!-- SON KONTROL -->
 <!-- ============================================================ -->
 <script>
-    const BEKLENEN_DOSYALAR = ['config','utils','questions','input','ui','player','bot','boss','bullet','game'];
-    const EKSIK_DOSYALAR = BEKLENEN_DOSYALAR.filter(d => !window.yuklenenDosyalar.includes(d));
-    
-    console.log("═══════════════════════════════════");
-    if (EKSIK_DOSYALAR.length === 0) {
-        console.log("✓ TÜM DOSYALAR YÜKLENDİ (" + window.yuklenenDosyalar.length + "/10)");
-    } else {
-        console.error("✗ EKSİK DOSYALAR: " + EKSIK_DOSYALAR.join(", "));
-    }
-    console.log("═══════════════════════════════════");
+    window.yuklemeKontrol();
 </script>
 
 </body>
