@@ -1,8 +1,7 @@
 // ============================================================
 // QUESTIONS.JS - İngilizce sorular (5 tense x 5 soru)
 // ============================================================
-window.yuklenenDosyalar.push('questions');
-console.log("[✓] questions.js yüklendi");
+window.dosyaYuklendi('questions');
 
 const sorular = {
     presentSimple: [
@@ -42,7 +41,6 @@ const sorular = {
     ]
 };
 
-// Hangi sırayla sorulacak
 const tenseSirasi = [
     { key: 'presentSimple', label: 'PRESENT SIMPLE' },
     { key: 'presentContinuous', label: 'PRESENT CONTINUOUS' },
