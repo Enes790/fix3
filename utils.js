@@ -1,9 +1,11 @@
 // ============================================================
-// UTILS.JS - Yardımcı fonksiyonlar + efekt sistemi
+// UTILS.JS - Yardımcı fonksiyonlar + efekt sistemi + çizim
 // ============================================================
 window.dosyaYuklendi('utils');
 
-// Kısa yardımcılar
+// ============================================================
+// KISA YARDIMCILAR
+// ============================================================
 const U = {
     d: (x1, y1, x2, y2) => Math.hypot(x2 - x1, y2 - y1),
     a: (x1, y1, x2, y2) => Math.atan2(y2 - y1, x2 - x1),
@@ -12,7 +14,9 @@ const U = {
     P2: Math.PI * 2
 };
 
-// Daire çizim
+// ============================================================
+// ÇİZİM YARDIMCILARI
+// ============================================================
 function daire(x, y, r, renk, glow) {
     ctx.fillStyle = renk;
     if (glow) { ctx.shadowColor = renk; ctx.shadowBlur = glow; }
@@ -22,7 +26,9 @@ function daire(x, y, r, renk, glow) {
     ctx.shadowBlur = 0;
 }
 
-// Parçacık oluştur
+// ============================================================
+// PARÇACIK SİSTEMİ
+// ============================================================
 function createParticles(x, y, color, count) {
     for (let i = 0; i < count; i++) {
         const angle = Math.random() * U.P2;
@@ -38,7 +44,9 @@ function createParticles(x, y, color, count) {
     }
 }
 
-// Ses çal
+// ============================================================
+// SES SİSTEMİ
+// ============================================================
 function playSound(freq, duration, type = 'sine') {
     try {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -55,24 +63,33 @@ function playSound(freq, duration, type = 'sine') {
     } catch (e) {}
 }
 
-// Diyalog mesajı
-const setDialogMessage = (msg) => document.getElementById('speechBubble').textContent = msg;
+// ============================================================
+// UI YARDIMCILARI
+// ============================================================
+const setDialogMessage = (msg) => {
+    const el = document.getElementById('speechBubble');
+    if (el) el.textContent = msg;
+};
 
-// Bot yüzü güncelle
 const setBotFace = (bgColor, text) => {
-    botFaceEl.style.background = bgColor;
-    botFaceEl.textContent = text;
+    const el = document.getElementById('botFace');
+    if (el) {
+        el.style.background = bgColor;
+        el.textContent = text;
+    }
 };
 
 // ============================================================
-// EFEKT SİSTEMİ
+// EFEKT OLUŞTURMA
 // ============================================================
 function efektSokDalgasi(x, y, renk) {
     effects.push({ tip: 'sok', x, y, yas: 0, omur: 400, renk, maxR: 80 });
 }
+
 function efektYildizPatlamasi(x, y) {
     effects.push({ tip: 'yildiz', x, y, yas: 0, omur: 300, aci: Math.random() * U.P2 });
 }
+
 function efektCarpmaKivilcimi(x, y, renk) {
     for (let i = 0; i < 5; i++) {
         effects.push({
@@ -81,13 +98,18 @@ function efektCarpmaKivilcimi(x, y, renk) {
         });
     }
 }
+
 function efektDogusDalgasi(x, y, renk) {
     effects.push({ tip: 'dogus', x, y, yas: 0, omur: 350, renk, maxR: 50 });
 }
+
 function efektNamluAtesi(x, y, aci, renk) {
     effects.push({ tip: 'namlu', x, y, yas: 0, omur: 150, renk, aci: aci + U.P });
 }
 
+// ============================================================
+// EFEKT GÜNCELLEME
+// ============================================================
 function updateEffects(dt) {
     for (let i = effects.length - 1; i >= 0; i--) {
         effects[i].yas += dt * 16.67;
@@ -95,7 +117,98 @@ function updateEffects(dt) {
     }
 }
 
-// Tıklama (mobil + PC, çift tetikleme koruması)
+// ============================================================
+// EFEKT ÇİZİM (game.js tarafından çağrılır)
+// ============================================================
+function renderEffects(timestamp) {
+    for (const e of effects) {
+        const oran = e.yas / e.omur;
+
+        if (e.tip === 'sok') {
+            ctx.strokeStyle = e.renk;
+            ctx.globalAlpha = 1 - oran;
+            ctx.lineWidth = 6 * (1 - oran);
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.maxR * oran, 0, U.P2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        else if (e.tip === 'yildiz') {
+            const uz = 40 * (1 - oran);
+            ctx.strokeStyle = '#fff';
+            ctx.globalAlpha = 1 - oran;
+            ctx.lineWidth = 3;
+            for (let i = 0; i < 8; i++) {
+                const a = e.aci + (U.P / 4) * i;
+                ctx.beginPath();
+                ctx.moveTo(e.x + Math.cos(a) * 5, e.y + Math.sin(a) * 5);
+                ctx.lineTo(e.x + Math.cos(a) * (5 + uz), e.y + Math.sin(a) * (5 + uz));
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+        }
+        else if (e.tip === 'carpma') {
+            const uz = 15 * (1 - oran);
+            ctx.strokeStyle = e.renk;
+            ctx.globalAlpha = 1 - oran;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(e.x, e.y);
+            ctx.lineTo(e.x + Math.cos(e.aci) * uz, e.y + Math.sin(e.aci) * uz);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        else if (e.tip === 'dogus') {
+            ctx.strokeStyle = e.renk;
+            ctx.globalAlpha = 1 - oran;
+            ctx.lineWidth = 4 * (1 - oran);
+            ctx.beginPath();
+            ctx.arc(e.x, e.y, e.maxR * oran, 0, U.P2);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+        }
+        else if (e.tip === 'namlu') {
+            const uz = 12 * (1 - oran);
+            ctx.fillStyle = e.renk;
+            ctx.globalAlpha = 1 - oran;
+            ctx.beginPath();
+            ctx.arc(e.x + Math.cos(e.aci) * uz, e.y + Math.sin(e.aci) * uz, 5 * (1 - oran), 0, U.P2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+        }
+    }
+
+    // Kırılgan boss üstünde dönen yıldızlar
+    if (typeof gameState !== 'undefined' && gameState.state === 'bossSavasi' &&
+        typeof boss !== 'undefined' && boss.isActive && boss.state === 'kirilgan') {
+        const bx = screenWidth / 2;
+        const by = screenHeight * 0.14;
+        for (let i = 0; i < 3; i++) {
+            const a = (timestamp / 400) + (U.P2 / 3) * i;
+            const sx = bx + Math.cos(a) * 75;
+            const sy = by + Math.sin(a) * 55;
+            ctx.fillStyle = '#ffcc00';
+            ctx.shadowColor = '#ffcc00';
+            ctx.shadowBlur = 15;
+            ctx.beginPath();
+            for (let k = 0; k < 8; k++) {
+                const ang = (U.P / 4) * k;
+                const r = k % 2 === 0 ? 10 : 4;
+                const px = sx + Math.cos(ang) * r;
+                const py = sy + Math.sin(ang) * r;
+                if (k === 0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
+    }
+}
+
+// ============================================================
+// TIKLAMA (mobil + PC, çift tetikleme koruması)
+// ============================================================
 function addClickEvent(el, handler) {
     let locked = false;
     const run = () => {
@@ -105,5 +218,8 @@ function addClickEvent(el, handler) {
         handler();
     };
     el.addEventListener('click', run);
-    el.addEventListener('touchstart', (e) => { e.preventDefault(); run(); }, { passive: false });
+    el.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        run();
+    }, { passive: false });
 }
