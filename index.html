@@ -18,11 +18,6 @@
 </div>
 
 <!-- ============================================================ -->
-<!-- HATA PANELİ (ekranda hata gösterir) -->
-<!-- ============================================================ -->
-<div id="hataPanel"></div>
-
-<!-- ============================================================ -->
 <!-- OYUN ALANI -->
 <!-- ============================================================ -->
 <div id="oyunAlani" style="display:none;">
@@ -68,6 +63,11 @@
     </div>
 
 </div>
+
+<!-- ============================================================ -->
+<!-- KALICI DEBUG PANELİ - Alt tarafta, her zaman görünür -->
+<!-- ============================================================ -->
+<div id="kaliciDebug"></div>
 
 <!-- ============================================================ -->
 <!-- YÜKLEME TAKİP SİSTEMİ -->
@@ -142,61 +142,42 @@
 </script>
 
 <!-- ============================================================ -->
-<!-- HATA YAKALAYICI - Ekranda hata gösterir -->
+<!-- KALICI DEBUG - Her 500ms'de alt panelde durum günceller -->
 <!-- ============================================================ -->
 <script>
-    // Tüm hataları ekranda göster
+    // Hataları yakala ve panele yaz
+    window.hataMesaji = '';
     window.addEventListener('error', (e) => {
-        const panel = document.getElementById('hataPanel');
-        panel.style.display = 'block';
-        panel.style.background = 'rgba(231,76,60,0.95)';
-        panel.textContent += '❌ HATA:\n';
-        panel.textContent += 'Dosya: ' + (e.filename || '?').split('/').pop() + '\n';
-        panel.textContent += 'Satır: ' + (e.lineno || '?') + '\n';
-        panel.textContent += 'Mesaj: ' + (e.message || '?') + '\n\n';
+        window.hataMesaji = '❌ HATA: ' + (e.filename || '?').split('/').pop() + ':' + e.lineno + ' — ' + e.message;
     });
 
-    // Sayfa yüklendikten 2 saniye sonra durum bilgisi
-    setTimeout(() => {
-        const panel = document.getElementById('hataPanel');
-        if (panel.style.display === 'block') return; // hata varsa dokunma
+    // Her 500ms'de paneli güncelle
+    setInterval(() => {
+        const el = document.getElementById('kaliciDebug');
+        if (!el) return;
 
-        let durum = '📊 DURUM\n';
-        durum += '─────────────\n';
-        durum += 'Yüklenen: ' + (window.yuklenenDosyalar || []).length + '/10\n';
-        durum += 'gameState: ' + (typeof gameState !== 'undefined' ? '✓' : '✗') + '\n';
-        durum += 'player: ' + (typeof player !== 'undefined' ? 'x=' + Math.round(player.x) + ' y=' + Math.round(player.y) : '✗') + '\n';
-        durum += 'botEnemies: ' + (typeof botEnemies !== 'undefined' ? botEnemies.length : '✗') + '\n';
-        durum += 'canvas: ' + (typeof canvas !== 'undefined' ? canvas.width + 'x' + canvas.height : '✗') + '\n';
-        durum += 'arena: ' + (typeof arena !== 'undefined' ? arena.w + 'x' + arena.h : '✗') + '\n';
-        panel.textContent = durum;
-        panel.style.background = 'rgba(52,152,219,0.9)';
-        panel.style.display = 'block';
-    }, 2000);
+        let s = '═══ DEBUG ═══\n';
+        try { s += 'Yüklenen: ' + window.yuklenenDosyalar.length + '/10 [' + window.yuklenenDosyalar.join(',') + ']\n'; } catch(e) {}
+        try { s += 'canvas: ' + canvas.width + 'x' + canvas.height + '\n'; } catch(e) { s += 'canvas: YOK\n'; }
+        try { s += 'arena: x=' + Math.round(arena.x) + ' y=' + Math.round(arena.y) + ' w=' + Math.round(arena.w) + ' h=' + Math.round(arena.h) + '\n'; } catch(e) { s += 'arena: YOK\n'; }
+        try { s += 'player: x=' + Math.round(player.x) + ' y=' + Math.round(player.y) + ' r=' + player.radius + ' hp=' + player.hp + '/' + player.maxHp + '\n'; } catch(e) { s += 'player: YOK\n'; }
+        try { s += 'gameState: ' + gameState.state + ' | running=' + gameState.isRunning + '\n'; } catch(e) { s += 'gameState: YOK\n'; }
+        try { s += 'botEnemies: ' + botEnemies.length + '\n'; } catch(e) { s += 'botEnemies: YOK\n'; }
+        try { s += 'ctx: ' + (typeof ctx) + '\n'; } catch(e) {}
+        try { s += 'roundRect: ' + (typeof ctx.roundRect) + '\n'; } catch(e) {}
+        try { s += 'oyunAlani: ' + document.getElementById('oyunAlani').style.display + '\n'; } catch(e) {}
 
-    // BAŞLA butonuna basınca durumu güncelle
-    window.addEventListener('load', () => {
-        setTimeout(() => {
-            const startBtn = document.getElementById('startButton');
-            if (startBtn) {
-                startBtn.addEventListener('click', () => {
-                    setTimeout(() => {
-                        const panel = document.getElementById('hataPanel');
-                        let durum = '📊 OYUN BAŞLADI\n';
-                        durum += '─────────────\n';
-                        durum += 'isRunning: ' + (typeof gameState !== 'undefined' ? gameState.isRunning : '✗') + '\n';
-                        durum += 'state: ' + (typeof gameState !== 'undefined' ? gameState.state : '✗') + '\n';
-                        durum += 'botEnemies: ' + (typeof botEnemies !== 'undefined' ? botEnemies.length : '✗') + '\n';
-                        durum += 'player: ' + (typeof player !== 'undefined' ? 'x=' + Math.round(player.x) + ' y=' + Math.round(player.y) : '✗') + '\n';
-                        durum += 'canvas: ' + (typeof canvas !== 'undefined' ? canvas.width + 'x' + canvas.height : '✗') + '\n';
-                        panel.textContent = durum;
-                        panel.style.background = 'rgba(52,152,219,0.9)';
-                        panel.style.display = 'block';
-                    }, 1500);
-                });
-            }
-        }, 2500);
-    });
+        if (window.hataMesaji) {
+            s += '\n' + window.hataMesaji;
+            el.style.background = 'rgba(180, 0, 0, 0.9)';
+            el.style.color = '#fff';
+        } else {
+            el.style.background = 'rgba(0, 0, 0, 0.85)';
+            el.style.color = '#0f0';
+        }
+
+        el.textContent = s;
+    }, 500);
 </script>
 
 </body>
