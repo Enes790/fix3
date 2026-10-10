@@ -1,7 +1,6 @@
 /* ============================================================
    KUTU SAVAŞI - Ana Stil Dosyası
    ============================================================ */
-console.log("[✓] style.css yüklendi");
 
 /* ============================================================
    GENEL SIFIRLAMA
@@ -338,4 +337,87 @@ canvas {
     font-weight: bold;
     min-height: 28px;
     text-align: center;
+}
+
+/* ============================================================
+   YÜKLEME PANELİ
+   ============================================================ */
+#yuklemePaneli {
+    position: fixed;
+    inset: 0;
+    background: #0a0a0f;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+    font-family: monospace;
+}
+
+#yuklemePaneli h2 {
+    color: #f1c40f;
+    font-size: 22px;
+    margin-bottom: 20px;
+    letter-spacing: 2px;
+}
+
+#yuklemeListesi {
+    width: 100%;
+    max-width: 400px;
+    max-height: 50vh;
+    overflow-y: auto;
+    margin-bottom: 16px;
+}
+
+.yuklemeSatir {
+    color: #2ecc71;
+    font-size: 14px;
+    padding: 4px 8px;
+    animation: yukleAnim 0.3s;
+}
+
+@keyframes yukleAnim {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+#yuklemeDurum {
+    color: #f1c40f;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: center;
+}
+
+/* ============================================================
+   HATA PANELİ (DEBUG)
+   ============================================================ */
+#hataPanel {
+    position: fixed;
+    top: 5px;
+    right: 5px;
+    max-width: 90vw;
+    max-height: 40vh;
+    overflow: auto;
+    background: rgba(52, 152, 219, 0.9);
+    color: #fff;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: none;
+    z-index: 9999;
+    white-space: pre-wrap;
+    line-height: 1.4;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+/* ============================================================
+   OYUN ALANI KAPSAYICISI
+   ============================================================ */
+#oyunAlani {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
 }
